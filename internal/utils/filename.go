@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/h2non/filetype"
-	"github.com/kennygrant/sanitize"
 	"github.com/vfaronov/httpheader"
 )
 
@@ -140,16 +139,35 @@ func sanitizedBecameExtensionOnly(original, sanitized string) bool {
 }
 
 func sanitizeFilename(name string) string {
-	// The kennygrant/sanitize package replaces invalid characters,
-	// handles control characters, and performs general filename safety.
-	// We retain some basic fallback logic for absolute basics.
-
 	name = strings.ReplaceAll(name, "\\", "/")
 	name = filepath.Base(name)
 
-	if name == "." || name == "/" || name == "\\" {
+	if name == "." || name == "/" || name == "\\" || name == "" {
 		return "_"
 	}
 
-	return sanitize.Name(name)
+	// Remove invalid characters for Windows/Linux/macOS
+	for _, ch := range []string{"<", ">", ":", "\"", "|", "?", "*"} {
+		name = strings.ReplaceAll(name, ch, "_")
+	}
+
+	// Trim leading/trailing spaces and trailing periods (problematic on Windows)
+	name = strings.TrimSpace(name)
+	name = strings.TrimRight(name, ".")
+
+	// Remove unprintable control characters
+	var b strings.Builder
+	for _, c := range name {
+		if (c >= 32 && c < 127) || c > 159 { // Keep printable ASCII and non-control Unicode (skip C1 control chars U+0080–U+009F)
+			b.WriteRune(c)
+		}
+	}
+	name = b.String()
+	name = strings.TrimSpace(name)
+
+	if name == "" {
+		return "_"
+	}
+
+	return name
 }
