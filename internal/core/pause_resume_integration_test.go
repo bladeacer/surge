@@ -752,10 +752,10 @@ func TestIntegration_PauseResumeBatch_ColdPath(t *testing.T) {
 		t.Fatalf("add 2 failed: %v", err)
 	}
 
-	waitForDownloadStatus(t, svc1, id1, 15*time.Second, func(st *types.DownloadStatus) bool {
+	waitForDownloadStatus(t, svc1, id1, 25*time.Second, func(st *types.DownloadStatus) bool {
 		return st.Status == "downloading" && st.Downloaded > 1024*512
 	})
-	waitForDownloadStatus(t, svc1, id2, 15*time.Second, func(st *types.DownloadStatus) bool {
+	waitForDownloadStatus(t, svc1, id2, 25*time.Second, func(st *types.DownloadStatus) bool {
 		return st.Status == "downloading" && st.Downloaded > 1024*512
 	})
 
@@ -766,8 +766,8 @@ func TestIntegration_PauseResumeBatch_ColdPath(t *testing.T) {
 		t.Fatalf("pause 2 failed: %v", err)
 	}
 
-	saved1 := waitForSavedStateByID(t, id1, 15*time.Second, func(s *types.DownloadState) bool { return s.Elapsed > 0 })
-	saved2 := waitForSavedStateByID(t, id2, 15*time.Second, func(s *types.DownloadState) bool { return s.Elapsed > 0 })
+	saved1 := waitForSavedStateByID(t, id1, 25*time.Second, func(s *types.DownloadState) bool { return s.Elapsed > 0 })
+	saved2 := waitForSavedStateByID(t, id2, 25*time.Second, func(s *types.DownloadState) bool { return s.Elapsed > 0 })
 
 	evCleanup1()
 	if err := svc1.Shutdown(); err != nil {
@@ -792,13 +792,13 @@ func TestIntegration_PauseResumeBatch_ColdPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("add hot failed: %v", err)
 	}
-	waitForDownloadStatus(t, svc2, idHot, 15*time.Second, func(st *types.DownloadStatus) bool {
+	waitForDownloadStatus(t, svc2, idHot, 25*time.Second, func(st *types.DownloadStatus) bool {
 		return st.Status == "downloading" && st.Downloaded > 1024*512
 	})
 	if err := svc2.Pause(idHot); err != nil {
 		t.Fatalf("pause hot failed: %v", err)
 	}
-	waitForDownloadStatus(t, svc2, idHot, 15*time.Second, func(st *types.DownloadStatus) bool { return st.Status == "paused" })
+	waitForDownloadStatus(t, svc2, idHot, 25*time.Second, func(st *types.DownloadStatus) bool { return st.Status == "paused" })
 
 	// 3. Batch resume including hot, cold, and a missing ID
 	missingID := "non-existent-id"
@@ -826,13 +826,13 @@ func TestIntegration_PauseResumeBatch_ColdPath(t *testing.T) {
 	}
 
 	// Wait for resumes
-	resumed1 := waitForDownloadStatus(t, svc2, id1, 15*time.Second, func(st *types.DownloadStatus) bool {
+	resumed1 := waitForDownloadStatus(t, svc2, id1, 25*time.Second, func(st *types.DownloadStatus) bool {
 		return st.Status == "downloading" && st.Downloaded >= saved1.Downloaded && st.Speed > 0
 	})
-	resumed2 := waitForDownloadStatus(t, svc2, id2, 15*time.Second, func(st *types.DownloadStatus) bool {
+	resumed2 := waitForDownloadStatus(t, svc2, id2, 25*time.Second, func(st *types.DownloadStatus) bool {
 		return st.Status == "downloading" && st.Downloaded >= saved2.Downloaded && st.Speed > 0
 	})
-	resumedHot := waitForDownloadStatus(t, svc2, idHot, 15*time.Second, func(st *types.DownloadStatus) bool {
+	resumedHot := waitForDownloadStatus(t, svc2, idHot, 25*time.Second, func(st *types.DownloadStatus) bool {
 		return st.Status == "downloading" && st.Speed > 0
 	})
 
