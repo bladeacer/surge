@@ -2,12 +2,23 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net"
 	"net/http"
+	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/surge-downloader/surge/internal/core"
 	"github.com/surge-downloader/surge/internal/engine/events"
 	"github.com/surge-downloader/surge/internal/utils"
+)
+
+var (
+	ErrServiceUnavailable = errors.New("service unavailable")
+	ErrDownloadNotFound   = errors.New("download not found")
+	ErrNoDestinationPath  = errors.New("download has no destination path")
 )
 
 func registerHTTPRoutes(mux *http.ServeMux, port int, defaultOutputDir string, service core.DownloadService) {
@@ -63,8 +74,54 @@ func registerHTTPRoutes(mux *http.ServeMux, port int, defaultOutputDir string, s
 			http.Error(w, "Failed to retrieve history: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
+		sort.Slice(history, func(left, right int) bool {
+			if history[left].CompletedAt == history[right].CompletedAt {
+				return history[left].ID > history[right].ID
+			}
+			return history[left].CompletedAt > history[right].CompletedAt
+		})
 		writeJSONResponse(w, http.StatusOK, history)
 	}))
+
+	mux.HandleFunc("/open-file", requireMethod(http.MethodPost, withRequiredID(func(w http.ResponseWriter, r *http.Request, id string) {
+		if err := ensureOpenActionRequestAllowed(r); err != nil {
+			http.Error(w, err.Error(), http.StatusForbidden)
+			return
+		}
+
+		destPath, err := resolveDownloadDestPath(service, id)
+		if err != nil {
+			http.Error(w, err.Error(), statusCodeForResolveDownloadError(err))
+			return
+		}
+
+		if err := utils.OpenFile(destPath); err != nil {
+			http.Error(w, "Failed to open file: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		writeJSONResponse(w, http.StatusOK, map[string]string{"status": "ok", "id": id})
+	})))
+
+	mux.HandleFunc("/open-folder", requireMethod(http.MethodPost, withRequiredID(func(w http.ResponseWriter, r *http.Request, id string) {
+		if err := ensureOpenActionRequestAllowed(r); err != nil {
+			http.Error(w, err.Error(), http.StatusForbidden)
+			return
+		}
+
+		destPath, err := resolveDownloadDestPath(service, id)
+		if err != nil {
+			http.Error(w, err.Error(), statusCodeForResolveDownloadError(err))
+			return
+		}
+
+		if err := utils.OpenContainingFolder(destPath); err != nil {
+			http.Error(w, "Failed to open folder: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		writeJSONResponse(w, http.StatusOK, map[string]string{"status": "ok", "id": id})
+	})))
 
 	mux.HandleFunc("/update-url", requireMethod(http.MethodPut, withRequiredID(func(w http.ResponseWriter, r *http.Request, id string) {
 		var req map[string]string
@@ -174,6 +231,71 @@ func writeJSONResponse(w http.ResponseWriter, status int, payload interface{}) {
 	if err := json.NewEncoder(w).Encode(payload); err != nil {
 		utils.Debug("Failed to encode response: %v", err)
 	}
+}
+
+func resolveDownloadDestPath(service core.DownloadService, id string) (string, error) {
+	if service == nil {
+		return "", ErrServiceUnavailable
+	}
+
+	status, err := service.GetStatus(id)
+	if err == nil && status != nil {
+		if destPath := filepath.Clean(status.DestPath); destPath != "" && destPath != "." {
+			return destPath, nil
+		}
+	}
+
+	history, err := service.History()
+	if err != nil {
+		return "", fmt.Errorf("failed to read history: %w", err)
+	}
+
+	for _, entry := range history {
+		if entry.ID != id {
+			continue
+		}
+		destPath := filepath.Clean(entry.DestPath)
+		if destPath == "" || destPath == "." {
+			return "", fmt.Errorf("%w: %s", ErrNoDestinationPath, id)
+		}
+		return destPath, nil
+	}
+
+	return "", fmt.Errorf("%w: %s", ErrDownloadNotFound, id)
+}
+
+func statusCodeForResolveDownloadError(err error) int {
+	switch {
+	case errors.Is(err, ErrDownloadNotFound):
+		return http.StatusNotFound
+	case errors.Is(err, ErrServiceUnavailable):
+		return http.StatusServiceUnavailable
+	default:
+		return http.StatusInternalServerError
+	}
+}
+
+func ensureOpenActionRequestAllowed(r *http.Request) error {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		host = r.RemoteAddr
+	}
+
+	ip := net.ParseIP(host)
+	if ip != nil && ip.IsLoopback() {
+		xff := strings.TrimSpace(r.Header.Get("X-Forwarded-For"))
+		xri := strings.TrimSpace(r.Header.Get("X-Real-IP"))
+		if xff == "" && xri == "" {
+			return nil
+		}
+	}
+
+	settings := getSettings()
+	if settings != nil && settings.General.AllowRemoteOpenActions {
+		return nil
+	}
+
+	return fmt.Errorf("open actions are only allowed from local host")
 }
 
 func decodeJSONBody(r *http.Request, dst interface{}) error {
