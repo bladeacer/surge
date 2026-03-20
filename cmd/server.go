@@ -33,7 +33,7 @@ var serverStartCmd = &cobra.Command{
 		// Attempt to acquire lock before any global state initialization
 		isMaster, err := AcquireLock()
 		if err != nil {
-			fmt.Printf("Error acquiring lock: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Error acquiring lock: %v\n", err)
 			os.Exit(1)
 		}
 
@@ -50,8 +50,10 @@ var serverStartCmd = &cobra.Command{
 		mustInitializeGlobalState()
 
 		msg := runStartupIntegrityCheck()
-		utils.Debug("%s", msg)
-		fmt.Println(msg)
+		if msg != "" {
+			utils.Debug("%s", msg)
+			fmt.Println(msg)
+		}
 
 		portFlag, _ := cmd.Flags().GetInt("port")
 		batchFile, _ := cmd.Flags().GetString("batch")
@@ -142,6 +144,10 @@ func init() {
 
 func savePID() {
 	pid := os.Getpid()
+	if err := os.MkdirAll(config.GetRuntimeDir(), 0o755); err != nil {
+		utils.Debug("Error creating runtime directory for PID file: %v", err)
+		return
+	}
 	pidFile := filepath.Join(config.GetRuntimeDir(), "pid")
 	if err := os.WriteFile(pidFile, []byte(fmt.Sprintf("%d", pid)), 0o644); err != nil {
 		utils.Debug("Error writing PID file: %v", err)
@@ -183,25 +189,10 @@ func startServerLogic(cmd *cobra.Command, args []string, portFlag int, batchFile
 
 	go startHTTPServer(listener, port, outputDir, GlobalService, strings.TrimSpace(tokenOverride))
 
-	// Queue initial downloads
-	go func() {
-		var urls []string
-		urls = append(urls, args...)
-
-		if batchFile != "" {
-			fileURLs, err := utils.ReadURLsFromFile(batchFile)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error reading batch file: %v\n", err)
-			} else {
-				urls = append(urls, fileURLs...)
-			}
-		}
-
-		if len(urls) > 0 {
-			resolvedOutputDir := resolveClientOutputPath(outputDir)
-			processDownloads(urls, resolvedOutputDir, 0)
-		}
-	}()
+	queueInitialRootDownloads(args, rootRunOptions{
+		batchFile: batchFile,
+		outputDir: outputDir,
+	})
 
 	fmt.Printf("Surge %s running in server mode.\n", Version)
 	host := serverBindHost
@@ -222,7 +213,7 @@ func startServerLogic(cmd *cobra.Command, args []string, portFlag int, batchFile
 			ticker := time.NewTicker(2 * time.Second)
 			defer ticker.Stop()
 			for range ticker.C {
-				if atomic.LoadInt32(&activeDownloads) == 0 {
+				if atomic.LoadInt32(&pendingEnqueue) == 0 && atomic.LoadInt32(&activeDownloads) == 0 {
 					if GlobalPool != nil && GlobalPool.ActiveCount() == 0 {
 						select {
 						case exitWhenDoneCh <- struct{}{}:
