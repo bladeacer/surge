@@ -751,11 +751,9 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			// Quit
 			if key.Matches(msg, m.keys.Dashboard.Quit, m.keys.Dashboard.ForceQuit) {
-				if m.cancelEnqueue != nil {
-					m.cancelEnqueue()
-				}
-				m.shuttingDown = true
-				return m, shutdownCmd(m.Service)
+				m.state = QuitConfirmState
+				m.quitConfirmFocused = 0
+				return m, nil
 			}
 
 			// Add download
@@ -1316,6 +1314,40 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			return m, cmd
+
+		case QuitConfirmState:
+			confirmQuit := func() (tea.Model, tea.Cmd) {
+				if m.cancelEnqueue != nil {
+					m.cancelEnqueue()
+				}
+				m.shuttingDown = true
+				return m, shutdownCmd(m.Service)
+			}
+			cancelQuit := func() (tea.Model, tea.Cmd) {
+				m.state = DashboardState
+				m.quitConfirmFocused = 0
+				return m, nil
+			}
+			if key.Matches(msg, m.keys.QuitConfirm.Left) || key.Matches(msg, m.keys.QuitConfirm.Right) {
+				m.quitConfirmFocused = 1 - m.quitConfirmFocused
+				return m, nil
+			}
+			if key.Matches(msg, m.keys.QuitConfirm.Yes) {
+				return confirmQuit()
+			}
+			if key.Matches(msg, m.keys.QuitConfirm.No) {
+				return cancelQuit()
+			}
+			if key.Matches(msg, m.keys.QuitConfirm.Select) {
+				if m.quitConfirmFocused == 0 {
+					return confirmQuit()
+				}
+				return cancelQuit()
+			}
+			if key.Matches(msg, m.keys.QuitConfirm.Cancel) {
+				return cancelQuit()
+			}
+			return m, nil
 
 		case BatchConfirmState:
 			if key.Matches(msg, m.keys.BatchConfirm.Confirm) {

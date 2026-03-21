@@ -605,16 +605,201 @@ func TestUpdate_QuitCancelsEnqueueContext(t *testing.T) {
 		cancelEnqueue: cancel,
 	}
 
+	// ctrl+c should open the quit confirmation modal, not shut down immediately
 	updated, _ := m.Update(tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl})
 	m2 := updated.(RootModel)
 
-	if !m2.shuttingDown {
-		t.Fatal("expected model to enter shutdown state")
+	if m2.state != QuitConfirmState {
+		t.Fatal("expected model to enter quit confirmation state")
+	}
+	if m2.shuttingDown {
+		t.Fatal("expected model to not be shutting down yet")
+	}
+
+	// confirming with enter (Yes button focused by default) should cancel the context and begin shutdown
+	updated, _ = m2.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+	m3 := updated.(RootModel)
+
+	if !m3.shuttingDown {
+		t.Fatal("expected model to enter shutdown state after confirmation")
 	}
 	select {
 	case <-ctx.Done():
 	default:
 		t.Fatal("expected quit to cancel enqueue context")
+	}
+}
+
+func newQuitConfirmModel() RootModel {
+	return RootModel{
+		state: QuitConfirmState,
+		keys:  Keys,
+	}
+}
+
+func TestQuitConfirm_RightMovesToNo(t *testing.T) {
+	m := newQuitConfirmModel()
+	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyRight})
+	m2 := updated.(RootModel)
+	if m2.quitConfirmFocused != 1 {
+		t.Fatal("expected focus to move to No button")
+	}
+}
+
+func TestQuitConfirm_LeftMovesToYes(t *testing.T) {
+	m := newQuitConfirmModel()
+	m.quitConfirmFocused = 1
+	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyLeft})
+	m2 := updated.(RootModel)
+	if m2.quitConfirmFocused != 0 {
+		t.Fatal("expected focus to move to Yes button")
+	}
+}
+
+func TestQuitConfirm_TabWrapsFromNoToYes(t *testing.T) {
+	m := newQuitConfirmModel()
+	m.quitConfirmFocused = 1
+	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyTab})
+	m2 := updated.(RootModel)
+	if m2.quitConfirmFocused != 0 {
+		t.Fatal("expected tab on Nope to wrap back to Yep!")
+	}
+}
+
+func TestQuitConfirm_EscCancels(t *testing.T) {
+	m := newQuitConfirmModel()
+	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyEscape})
+	m2 := updated.(RootModel)
+	if m2.state != DashboardState {
+		t.Fatal("expected esc to return to dashboard")
+	}
+	if m2.shuttingDown {
+		t.Fatal("expected no shutdown on cancel")
+	}
+}
+
+func TestQuitConfirm_NShortcutCancels(t *testing.T) {
+	m := newQuitConfirmModel()
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'n'})
+	m2 := updated.(RootModel)
+	if m2.state != DashboardState {
+		t.Fatal("expected n to return to dashboard")
+	}
+	if m2.shuttingDown {
+		t.Fatal("expected no shutdown on n")
+	}
+}
+
+func TestQuitConfirm_YShortcutConfirms(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	m := newQuitConfirmModel()
+	m.enqueueCtx = ctx
+	m.cancelEnqueue = cancel
+
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'y'})
+	m2 := updated.(RootModel)
+	if !m2.shuttingDown {
+		t.Fatal("expected y to begin shutdown")
+	}
+	select {
+	case <-ctx.Done():
+	default:
+		t.Fatal("expected y to cancel enqueue context")
+	}
+}
+
+func TestQuitConfirm_EnterWithNoFocusedCancels(t *testing.T) {
+	m := newQuitConfirmModel()
+	m.quitConfirmFocused = 1
+	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+	m2 := updated.(RootModel)
+	if m2.state != DashboardState {
+		t.Fatal("expected enter on No button to return to dashboard")
+	}
+	if m2.shuttingDown {
+		t.Fatal("expected no shutdown when No is selected")
+	}
+	if m2.quitConfirmFocused != 0 {
+		t.Fatal("expected focus to reset to Yes after cancel")
+	}
+}
+
+func TestQuitConfirm_SpaceWithYesFocusedConfirms(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	m := newQuitConfirmModel()
+	m.enqueueCtx = ctx
+	m.cancelEnqueue = cancel
+
+	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeySpace})
+	m2 := updated.(RootModel)
+	if !m2.shuttingDown {
+		t.Fatal("expected space on Yes button to begin shutdown")
+	}
+	select {
+	case <-ctx.Done():
+	default:
+		t.Fatal("expected space to cancel enqueue context")
+	}
+}
+
+func TestQuitConfirm_TabMovesToNo(t *testing.T) {
+	m := newQuitConfirmModel()
+	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyTab})
+	m2 := updated.(RootModel)
+	if m2.quitConfirmFocused != 1 {
+		t.Fatal("expected tab to move focus to No button")
+	}
+}
+
+func TestQuitConfirm_HMovesToYes(t *testing.T) {
+	m := newQuitConfirmModel()
+	m.quitConfirmFocused = 1
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'h'})
+	m2 := updated.(RootModel)
+	if m2.quitConfirmFocused != 0 {
+		t.Fatal("expected h to move focus to Yes button")
+	}
+}
+
+func TestQuitConfirm_LMovesToNo(t *testing.T) {
+	m := newQuitConfirmModel()
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'l'})
+	m2 := updated.(RootModel)
+	if m2.quitConfirmFocused != 1 {
+		t.Fatal("expected l to move focus to No button")
+	}
+}
+
+func TestQuitConfirm_CtrlCCancels(t *testing.T) {
+	m := newQuitConfirmModel()
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl})
+	m2 := updated.(RootModel)
+	if m2.state != DashboardState {
+		t.Fatal("expected ctrl+c to return to dashboard from quit confirm modal")
+	}
+	if m2.shuttingDown {
+		t.Fatal("expected no shutdown on ctrl+c cancel")
+	}
+}
+
+func TestQuitConfirm_CtrlQCancels(t *testing.T) {
+	m := newQuitConfirmModel()
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'q', Mod: tea.ModCtrl})
+	m2 := updated.(RootModel)
+	if m2.state != DashboardState {
+		t.Fatal("expected ctrl+q to return to dashboard from quit confirm modal")
+	}
+	if m2.shuttingDown {
+		t.Fatal("expected no shutdown on ctrl+q cancel")
+	}
+}
+
+func TestQuitConfirm_UnrelatedKeyIgnored(t *testing.T) {
+	m := newQuitConfirmModel()
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'x'})
+	m2 := updated.(RootModel)
+	if m2.state != QuitConfirmState {
+		t.Fatal("expected unrelated key to keep modal open")
 	}
 }
 
