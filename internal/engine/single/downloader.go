@@ -128,7 +128,7 @@ func newSingleTransport(runtime *types.RuntimeConfig) *http.Transport {
 // Download downloads a file using a single connection.
 // This is used for servers that don't support Range requests.
 // If interrupted, the download cannot be resumed and must restart from the beginning.
-func (d *SingleDownloader) Download(ctx context.Context, rawurl, destPath string, fileSize int64, filename string) error {
+func (d *SingleDownloader) Download(ctx context.Context, rawurl, destPath string, fileSize int64, filename string) (err error) {
 	defer d.Client.CloseIdleConnections()
 
 	if d.State != nil {
@@ -166,6 +166,11 @@ func (d *SingleDownloader) Download(ctx context.Context, rawurl, destPath string
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if cerr := outFile.Close(); cerr != nil && err == nil {
+			err = fmt.Errorf("close error: %w", cerr)
+		}
+	}()
 
 	preallocated := false
 	if fileSize > 0 {
@@ -174,10 +179,6 @@ func (d *SingleDownloader) Download(ctx context.Context, rawurl, destPath string
 		}
 		preallocated = true
 	}
-
-	defer func() {
-		_ = outFile.Close()
-	}()
 
 	start := time.Now()
 	var written int64
@@ -208,9 +209,6 @@ func (d *SingleDownloader) Download(ctx context.Context, rawurl, destPath string
 
 	if err := outFile.Sync(); err != nil {
 		return fmt.Errorf("sync error: %w", err)
-	}
-	if err := outFile.Close(); err != nil {
-		return fmt.Errorf("close error: %w", err)
 	}
 
 	if d.State != nil {
