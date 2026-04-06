@@ -74,10 +74,23 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 
+		if m.state == SettingsState {
+			m.normalizeSettingsSelection()
+			if m.SettingsIsEditing {
+				m.updateSettingsInputWidthForViewport()
+			}
+		}
+
+		if m.state == CategoryManagerState {
+			m.normalizeCategoryManagerSelection()
+			if m.catMgrEditing {
+				m.updateCategoryInputWidthsForViewport()
+			}
+		}
+
 		// Calculate list dimensions
-		// List goes in bottom-left pane
+		// List goes in bottom-left pane — use full width; View() handles the actual box sizing
 		availableWidth := msg.Width - 4
-		leftWidth := int(float64(availableWidth) * ListWidthRatio)
 
 		// Calculate list height (total height - header row - margins)
 		topHeight := 9
@@ -86,7 +99,7 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			bottomHeight = 10
 		}
 
-		m.list.SetSize(leftWidth-2, bottomHeight-4)
+		m.list.SetSize(availableWidth-2, bottomHeight-4)
 
 		// Update list based on active tab
 		m.UpdateListItems()
@@ -165,9 +178,6 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case FilePickerState:
 			return m.updateFilePicker(msg)
 
-		case HistoryState:
-			return m.updateHistory(msg)
-
 		case DuplicateWarningState:
 			return m.updateDuplicateWarning(msg)
 
@@ -194,6 +204,13 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case CategoryManagerState:
 			return m.updateCategoryManager(msg)
+
+		case HelpModalState:
+			if msg.String() == "esc" {
+				m.state = DashboardState
+				return m, nil
+			}
+			return m, nil
 
 		default:
 			return m, nil

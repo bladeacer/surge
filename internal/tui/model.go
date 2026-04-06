@@ -32,8 +32,7 @@ const (
 	InputState                                // InputState is 1
 	DetailState                               // DetailState is 2
 	FilePickerState                           // FilePickerState is 3
-	HistoryState                              // HistoryState is 4
-	DuplicateWarningState                     // DuplicateWarningState is 5
+	DuplicateWarningState                     // DuplicateWarningState is 4
 	SearchState                               // SearchState is 6
 	SettingsState                             // SettingsState is 7
 	ExtensionConfirmationState                // ExtensionConfirmationState is 8
@@ -43,6 +42,7 @@ const (
 	URLUpdateState                            // URLUpdateState is 12
 	CategoryManagerState                      // CategoryManagerState is 13
 	QuitConfirmState                          // QuitConfirmState is 14
+	HelpModalState                            // HelpModalState is 15
 )
 
 const (
@@ -102,10 +102,6 @@ type RootModel struct {
 	list list.Model
 
 	PWD string
-
-	// History view
-	historyEntries []types.DownloadEntry
-	historyCursor  int
 
 	// Duplicate detection
 	pendingURL           string // URL pending confirmation
@@ -319,6 +315,8 @@ func InitialRootModel(serverPort int, currentVersion string, service core.Downlo
 	helpModel := help.New()
 	helpModel.Styles.ShortKey = lipgloss.NewStyle().Foreground(colors.LightGray)
 	helpModel.Styles.ShortDesc = lipgloss.NewStyle().Foreground(colors.Gray)
+	helpModel.Styles.FullKey = lipgloss.NewStyle().Foreground(colors.NeonPink)
+	helpModel.Styles.FullDesc = lipgloss.NewStyle().Foreground(colors.LightGray)
 
 	// Initialize settings input for editing
 	settingsInput := textinput.New()
@@ -575,6 +573,8 @@ func (m *RootModel) refreshThemeCaches() {
 	rebuildStyles()
 	m.help.Styles.ShortKey = lipgloss.NewStyle().Foreground(colors.LightGray)
 	m.help.Styles.ShortDesc = lipgloss.NewStyle().Foreground(colors.Gray)
+	m.help.Styles.FullKey = lipgloss.NewStyle().Foreground(colors.NeonPink)
+	m.help.Styles.FullDesc = lipgloss.NewStyle().Foreground(colors.LightGray)
 	applyListTheme(&m.list)
 	m.logoCache = ""
 }
