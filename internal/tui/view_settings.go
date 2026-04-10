@@ -20,10 +20,10 @@ func (m RootModel) viewSettings() string {
 		return ""
 	}
 
-	width, height := settingsModalDimensions(m.width, m.height)
-	if width < 40 || height < 10 {
+	width, height := GetSettingsDimensions(m.width, m.height)
+	if width < MinSettingsWidth || height < 10 { // Special threshold for settings rendering floor
 		content := lipgloss.NewStyle().
-			Padding(1, 2).
+			Padding(DefaultPaddingY, DefaultPaddingX*2).
 			Foreground(colors.LightGray).
 			Render("Terminal too small for settings view")
 		box := renderBtopBox(PaneTitleStyle.Render(" Settings "), "", content, width, height, colors.NeonPurple)
@@ -69,8 +69,8 @@ func (m RootModel) viewSettings() string {
 	}
 
 	settingsValues := m.getSettingsValues(currentCategory)
-	tabBar := m.renderSettingsTabBar(categories, activeTab, width-6)
-	helpText := m.renderSettingsHelp(width - 6)
+	tabBar := m.renderSettingsTabBar(categories, activeTab, width-(ProgressBarWidthOffset+HeaderWidthOffset))
+	helpText := m.renderSettingsHelp(width - (ProgressBarWidthOffset + HeaderWidthOffset))
 
 	innerHeight := height - BoxStyle.GetVerticalFrameSize()
 	tabBarHeight := lipgloss.Height(tabBar)
@@ -107,34 +107,7 @@ func (m RootModel) viewSettings() string {
 	return m.renderModalWithOverlay(box)
 }
 
-func settingsModalDimensions(termWidth, termHeight int) (int, int) {
-	width := int(float64(termWidth) * 0.72)
-	if width < 64 {
-		width = 64
-	}
-	if width > 130 {
-		width = 130
-	}
-	height := 26
 
-	maxWidth := termWidth - (WindowStyle.GetHorizontalFrameSize() * 2)
-	if maxWidth < 1 {
-		maxWidth = 1
-	}
-	maxHeight := termHeight - (WindowStyle.GetVerticalFrameSize() * 2) - 4 // fallback padding
-	if maxHeight < 1 {
-		maxHeight = 1
-	}
-
-	if width > maxWidth {
-		width = maxWidth
-	}
-	if height > maxHeight {
-		height = maxHeight
-	}
-
-	return width, height
-}
 
 func shortSettingsCategoryLabel(label string) string {
 	switch label {
@@ -390,25 +363,7 @@ func (m RootModel) renderSettingsDetailBlock(settingsMeta []config.SettingMeta, 
 }
 
 func (m RootModel) renderSettingsTwoColumn(settingsMeta []config.SettingMeta, selectedRow int, settingsValues map[string]interface{}, modalWidth, bodyHeight int) string {
-	leftWidth := 32
-	minRightWidth := 22
-
-	horizontalPadding := ModalPaddingStyle.GetHorizontalFrameSize() * 2
-
-	if modalWidth-leftWidth-horizontalPadding < minRightWidth {
-		leftWidth = modalWidth - minRightWidth - horizontalPadding
-	}
-	if leftWidth < 16 {
-		leftWidth = 16
-	}
-
-	rightWidth := modalWidth - leftWidth - horizontalPadding
-	if rightWidth < minRightWidth {
-		rightWidth = minRightWidth
-		if modalWidth-rightWidth-horizontalPadding > 16 {
-			leftWidth = modalWidth - rightWidth - horizontalPadding
-		}
-	}
+	leftWidth, rightWidth := CalculateTwoColumnWidths(modalWidth, 32, 22)
 
 	if leftWidth < 12 || rightWidth < 14 {
 		return m.renderSettingsCompact(settingsMeta, selectedRow, settingsValues, modalWidth, bodyHeight)
@@ -465,7 +420,7 @@ func (m RootModel) renderSettingsCompact(settingsMeta []config.SettingMeta, sele
 		listRows = 1
 	}
 
-	detailRows := bodyHeight - listRows - LayoutGapStyle.GetVerticalFrameSize()
+	detailRows := bodyHeight - listRows - 1 // -1 for the divider line
 	if detailRows < 1 {
 		detailRows = 1
 		listRows = bodyHeight - detailRows
@@ -526,31 +481,21 @@ func (m *RootModel) normalizeSettingsSelection() {
 }
 
 func (m *RootModel) updateSettingsInputWidthForViewport() {
-	modalWidth, _ := settingsModalDimensions(m.width, m.height)
+	modalWidth, _ := GetSettingsDimensions(m.width, m.height)
 
 	var targetWidth int
 	if modalWidth >= 72 {
-		leftWidth := 32
-		minRightWidth := 22
-		horizontalPadding := ModalPaddingStyle.GetHorizontalFrameSize() * 2
-
-		if modalWidth-leftWidth-horizontalPadding < minRightWidth {
-			leftWidth = modalWidth - minRightWidth - horizontalPadding
-		}
-		if leftWidth < 16 {
-			leftWidth = 16
-		}
-		rightWidth := modalWidth - leftWidth - horizontalPadding
+		_, rightWidth := CalculateTwoColumnWidths(modalWidth, 32, 22)
 		targetWidth = rightWidth - 10
 	} else {
 		targetWidth = modalWidth - 16
 	}
 
-	if targetWidth < 8 {
-		targetWidth = 8
+	if targetWidth < MinSettingsInputW {
+		targetWidth = MinSettingsInputW
 	}
-	if targetWidth > 48 {
-		targetWidth = 48
+	if targetWidth > MaxSettingsInputW {
+		targetWidth = MaxSettingsInputW
 	}
 
 	m.SettingsInput.SetWidth(targetWidth)

@@ -15,10 +15,10 @@ func (m RootModel) viewCategoryManager() string {
 		return ""
 	}
 
-	width, height := categoryModalDimensions(m.width, m.height)
-	if width < 40 || height < 10 {
+	width, height := GetSettingsDimensions(m.width, m.height)
+	if width < MinSettingsWidth || height < 10 { // Rendering floor for modals
 		content := lipgloss.NewStyle().
-			Padding(1, 2).
+			Padding(DefaultPaddingY, DefaultPaddingX*2).
 			Foreground(colors.LightGray).
 			Render("Terminal too small for category manager")
 		box := renderBtopBox(PaneTitleStyle.Render(" Category Manager "), "", content, width, height, colors.NeonPurple)
@@ -58,13 +58,13 @@ func (m RootModel) viewCategoryManager() string {
 	toggleLine := lipgloss.NewStyle().Foreground(colors.LightGray).Render("  Auto-Sort Downloads: ") +
 		toggleStyle.Render(enabledStr) +
 		lipgloss.NewStyle().Foreground(colors.Gray).Render("  (t to toggle)")
-	if width < 70 {
+	if width < MinGraphStatsWidth {
 		toggleLine = lipgloss.NewStyle().Foreground(colors.LightGray).Render("  Auto-Sort: ") +
 			toggleStyle.Render(enabledStr) +
 			lipgloss.NewStyle().Foreground(colors.Gray).Render("  (t)")
 	}
 
-	helpText := m.renderCategoryHelp(width - 6)
+	helpText := m.renderCategoryHelp(width - (ProgressBarWidthOffset + HeaderWidthOffset))
 	catCount := fmt.Sprintf("%d categories", len(cats))
 	infoLine := lipgloss.NewStyle().Foreground(colors.Gray).Render("  " + catCount)
 
@@ -104,34 +104,7 @@ func (m RootModel) viewCategoryManager() string {
 	return m.renderModalWithOverlay(box)
 }
 
-func categoryModalDimensions(termWidth, termHeight int) (int, int) {
-	width := int(float64(termWidth) * 0.72)
-	if width < 64 {
-		width = 64
-	}
-	if width > 130 {
-		width = 130
-	}
-	height := 26
 
-	maxWidth := termWidth - (WindowStyle.GetHorizontalFrameSize() * 2)
-	if maxWidth < 1 {
-		maxWidth = 1
-	}
-	maxHeight := termHeight - (WindowStyle.GetVerticalFrameSize() * 2) - 4 // default fallback padding
-	if maxHeight < 1 {
-		maxHeight = 1
-	}
-
-	if width > maxWidth {
-		width = maxWidth
-	}
-	if height > maxHeight {
-		height = maxHeight
-	}
-
-	return width, height
-}
 
 func (m RootModel) renderCategoryHelp(width int) string {
 	if width < 1 {
@@ -139,10 +112,10 @@ func (m RootModel) renderCategoryHelp(width int) string {
 	}
 
 	helpText := m.help.View(m.keys.CategoryMgr)
-	if width < 68 {
+	if width < MinGraphStatsWidth-2 {
 		helpText = "esc: save/close  enter: edit/save  del: remove"
 	}
-	if width < 48 {
+	if width < MinTermWidth+3 {
 		helpText = "esc close | enter edit | del rm"
 	}
 
@@ -297,25 +270,7 @@ func (m RootModel) renderCategoryEditView(innerWidth, rows int) string {
 }
 
 func (m RootModel) renderCategoryTwoColumn(cats []config.Category, cursor, modalWidth, bodyHeight int) string {
-	leftWidth := 28
-	minRightWidth := 24
-
-	horizontalPadding := ModalPaddingStyle.GetHorizontalFrameSize() * 2
-
-	if modalWidth-leftWidth-horizontalPadding < minRightWidth {
-		leftWidth = modalWidth - minRightWidth - horizontalPadding
-	}
-	if leftWidth < 16 {
-		leftWidth = 16
-	}
-
-	rightWidth := modalWidth - leftWidth - horizontalPadding
-	if rightWidth < minRightWidth {
-		rightWidth = minRightWidth
-		if modalWidth-rightWidth-horizontalPadding > 16 {
-			leftWidth = modalWidth - rightWidth - horizontalPadding
-		}
-	}
+	leftWidth, rightWidth := CalculateTwoColumnWidths(modalWidth, 28, 24)
 
 	if leftWidth < 14 || rightWidth < 16 {
 		return m.renderCategoryCompact(cats, cursor, modalWidth, bodyHeight)
@@ -383,7 +338,7 @@ func (m RootModel) renderCategoryCompact(cats []config.Category, cursor, modalWi
 		listRows = 1
 	}
 
-	detailRows := bodyHeight - listRows - LayoutGapStyle.GetVerticalFrameSize()
+	detailRows := bodyHeight - listRows - 1 // -1 for the divider line
 	if detailRows < 1 {
 		detailRows = 1
 		listRows = bodyHeight - detailRows

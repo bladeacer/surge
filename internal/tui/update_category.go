@@ -67,22 +67,11 @@ func (m *RootModel) normalizeCategoryManagerSelection() {
 }
 
 func (m *RootModel) updateCategoryInputWidthsForViewport() {
-	modalWidth, _ := categoryModalDimensions(m.width, m.height)
+	modalWidth, _ := GetSettingsDimensions(m.width, m.height)
 
 	var targetWidth int
 	if modalWidth >= 76 {
-		leftWidth := 28
-		minRightWidth := 24
-
-		horizontalPadding := ModalPaddingStyle.GetHorizontalFrameSize() * 2
-
-		if modalWidth-leftWidth-horizontalPadding < minRightWidth {
-			leftWidth = modalWidth - minRightWidth - horizontalPadding
-		}
-		if leftWidth < 16 {
-			leftWidth = 16
-		}
-		rightWidth := modalWidth - leftWidth - horizontalPadding
+		_, rightWidth := CalculateTwoColumnWidths(modalWidth, 28, 24)
 		targetWidth = rightWidth - 10
 	} else {
 		targetWidth = modalWidth - 14
@@ -198,7 +187,7 @@ func (m RootModel) updateCategoryManager(msg tea.KeyPressMsg) (tea.Model, tea.Cm
 	// Not editing - handle navigation
 	if key.Matches(msg, m.keys.CategoryMgr.Close) {
 		_ = m.persistSettings()
-		m.state = DashboardState
+		m.state = SettingsState
 		return m, nil
 	}
 
