@@ -103,9 +103,13 @@ func (m RootModel) View() tea.View {
 			BrowseHintIndex: 2,
 			Help:            m.help,
 			HelpKeys:        m.keys.Input,
+<<<<<<< HEAD
+			BorderColor:     colors.NeonPink,
+=======
 			BorderColor:     colors.Pink,
 			Width:           80,
 			Height:          11,
+>>>>>>> 29b8130 (feat: Removed Neon prefix for colours)
 		}
 		// Resolve dynamic dimensions
 		w, _ := GetDynamicModalDimensions(m.width, m.height, 46, 8, 80, 0)

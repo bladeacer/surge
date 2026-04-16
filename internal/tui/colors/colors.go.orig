@@ -59,8 +59,13 @@ var (
 
 // === Progress Bar Colors ===
 var (
+<<<<<<< HEAD
+	ProgressStart color.Color = themeColor{light: "#950053", dark: "#fa70bc"} // Muted Pink
+	ProgressEnd   color.Color = themeColor{light: "#5a1376", dark: "#b472ff"} // Muted Purple
+=======
 	ProgressStart color.Color = Pink
 	ProgressEnd   color.Color = Magenta
+>>>>>>> fd3032c (feat: Moved Blue colour declaration to colors.go)
 )
 
 var (
