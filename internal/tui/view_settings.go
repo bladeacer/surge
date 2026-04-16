@@ -26,7 +26,7 @@ func (m RootModel) viewSettings() string {
 			Padding(DefaultPaddingY, DefaultPaddingX*2).
 			Foreground(colors.LightGray).
 			Render("Terminal too small for settings view")
-		box := renderBtopBox(PaneTitleStyle.Render(" Settings "), "", content, width, height, colors.NeonPurple)
+		box := renderBtopBox(PaneTitleStyle.Render(" Settings "), "", content, width, height, colors.Magenta)
 		return m.renderModalWithOverlay(box)
 	}
 
@@ -36,7 +36,7 @@ func (m RootModel) viewSettings() string {
 			Padding(1, 2).
 			Foreground(colors.LightGray).
 			Render("No settings categories available")
-		box := renderBtopBox(PaneTitleStyle.Render(" Settings "), "", content, width, height, colors.NeonPurple)
+		box := renderBtopBox(PaneTitleStyle.Render(" Settings "), "", content, width, height, colors.Magenta)
 		return m.renderModalWithOverlay(box)
 	}
 
@@ -56,7 +56,7 @@ func (m RootModel) viewSettings() string {
 			Padding(1, 2).
 			Foreground(colors.LightGray).
 			Render("No settings available in this category")
-		box := renderBtopBox(PaneTitleStyle.Render(" Settings "), "", content, width, height, colors.NeonPurple)
+		box := renderBtopBox(PaneTitleStyle.Render(" Settings "), "", content, width, height, colors.Magenta)
 		return m.renderModalWithOverlay(box)
 	}
 
@@ -103,7 +103,7 @@ func (m RootModel) viewSettings() string {
 		helpText,
 	)
 
-	box := renderBtopBox(PaneTitleStyle.Render(" Settings "), "", fullContent, width, height, colors.NeonPurple)
+	box := renderBtopBox(PaneTitleStyle.Render(" Settings "), "", fullContent, width, height, colors.Magenta)
 	return m.renderModalWithOverlay(box)
 }
 
@@ -141,7 +141,7 @@ func (m RootModel) renderSettingsTabBar(categories []string, activeTab int, maxW
 		return tabs
 	}
 
-	settingsActiveTab := lipgloss.NewStyle().Foreground(colors.NeonPurple)
+	settingsActiveTab := lipgloss.NewStyle().Foreground(colors.Magenta)
 	tryBars := []string{
 		components.RenderNumberedTabBar(makeTabs(false), activeTab, settingsActiveTab, TabStyle),
 		components.RenderTabBar(makeTabs(false), activeTab, settingsActiveTab, TabStyle),
@@ -249,7 +249,7 @@ func renderSettingsListViewport(settingsMeta []config.SettingMeta, selectedRow, 
 		style := lipgloss.NewStyle().Foreground(colors.LightGray)
 		if idx == selectedRow {
 			prefix = "\u25b8 "
-			style = lipgloss.NewStyle().Foreground(colors.NeonPurple).Bold(true)
+			style = lipgloss.NewStyle().Foreground(colors.Magenta).Bold(true)
 		}
 
 		if meta.Key == "max_global_connections" {
@@ -317,10 +317,17 @@ func (m RootModel) renderSettingsDetailBlock(settingsMeta []config.SettingMeta, 
 					valueStr = displayToken + lipgloss.NewStyle().Foreground(colors.Gray).Render(" [Enter to Copy]")
 				}
 			}
+<<<<<<< HEAD
 		case "link":
 			valueStr = lipgloss.NewStyle().Foreground(colors.NeonCyan).Render("Open [Enter]")
 		default:
 			valueStr = formatSettingValueForEdit(value, meta.Type, meta.Key, true) + unitStyle.Render(unit)
+=======
+		} else if meta.Type == "link" {
+			valueStr = lipgloss.NewStyle().Foreground(colors.Cyan).Render("Open [Enter]")
+		} else {
+			valueStr = formatSettingValueForEdit(value, meta.Type, meta.Key) + unitStyle.Render(unit)
+>>>>>>> 29b8130 (feat: Removed Neon prefix for colours)
 			if meta.Key == "max_global_connections" {
 				valueStr += " (Ignored)"
 			}
@@ -335,7 +342,7 @@ func (m RootModel) renderSettingsDetailBlock(settingsMeta []config.SettingMeta, 
 		valueLabel = "Action: "
 	}
 
-	valueLabelStyle := lipgloss.NewStyle().Foreground(colors.NeonCyan).Bold(true)
+	valueLabelStyle := lipgloss.NewStyle().Foreground(colors.Cyan).Bold(true)
 	valueContentStyle := lipgloss.NewStyle().Foreground(colors.White)
 	valueDisplay := valueLabelStyle.Render(valueLabel) + valueContentStyle.Render(valueStr)
 	valueDisplay = lipgloss.NewStyle().Width(innerWidth).MaxWidth(innerWidth).Render(valueDisplay)

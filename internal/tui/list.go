@@ -101,8 +101,8 @@ func newDownloadDelegate() downloadDelegate {
 	baseTitle := lipgloss.NewStyle().Foreground(colors.White).Bold(true)
 	baseDesc := lipgloss.NewStyle().Foreground(colors.LightGray)
 
-	selTitle := lipgloss.NewStyle().Foreground(colors.NeonPink).Bold(true)
-	selDesc := lipgloss.NewStyle().Foreground(colors.NeonCyan)
+	selTitle := lipgloss.NewStyle().Foreground(colors.Pink).Bold(true)
+	selDesc := lipgloss.NewStyle().Foreground(colors.Cyan)
 
 	return downloadDelegate{
 		keys:           newDelegateKeyMap(),
@@ -111,7 +111,7 @@ func newDownloadDelegate() downloadDelegate {
 		selTitleStyle:  selTitle,
 		selDescStyle:   selDesc,
 		prefixNormal:   "  ",
-		prefixSelected: lipgloss.NewStyle().Foreground(colors.NeonPink).Render("\u258c "),
+		prefixSelected: lipgloss.NewStyle().Foreground(colors.Pink).Render("\u258c "),
 	}
 }
 
@@ -196,16 +196,16 @@ func applyListTheme(l *list.Model) {
 	l.SetStatusBarItemName("download", "downloads")
 
 	l.Styles.Title = lipgloss.NewStyle().
-		Foreground(colors.NeonPink).
+		Foreground(colors.Pink).
 		Bold(true).
 		Padding(0, 1)
 
-	l.Styles.Filter.Focused.Prompt = lipgloss.NewStyle().Foreground(colors.NeonCyan)
-	l.Styles.Filter.Blurred.Prompt = lipgloss.NewStyle().Foreground(colors.NeonCyan)
-	l.Styles.Filter.Cursor.Color = colors.NeonPink
+	l.Styles.Filter.Focused.Prompt = lipgloss.NewStyle().Foreground(colors.Cyan)
+	l.Styles.Filter.Blurred.Prompt = lipgloss.NewStyle().Foreground(colors.Cyan)
+	l.Styles.Filter.Cursor.Color = colors.Pink
 
 	l.Styles.NoItems = lipgloss.NewStyle().
-		Foreground(colors.NeonCyan).
+		Foreground(colors.Cyan).
 		Padding(2, 0)
 }
 

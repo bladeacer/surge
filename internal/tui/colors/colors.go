@@ -31,9 +31,9 @@ func (c themeColor) RGBA() (r, g, b, a uint32) {
 // === Color Palette ===
 // Vibrant "Cyberpunk" Neon Colors (Dark Mode) + High Contrast (Light Mode)
 var (
-	NeonPurple color.Color = themeColor{light: "#5d40c9", dark: "#bd93f9"}
-	NeonPink   color.Color = themeColor{light: "#d10074", dark: "#ff79c6"}
-	NeonCyan   color.Color = themeColor{light: "#0073a8", dark: "#8be9fd"}
+	Magenta color.Color = themeColor{light: "#5d40c9", dark: "#bd93f9"}
+	Pink   color.Color = themeColor{light: "#d10074", dark: "#ff79c6"}
+	Cyan   color.Color = themeColor{light: "#0073a8", dark: "#8be9fd"}
 	DarkGray   color.Color = themeColor{light: "#ffffff", dark: "#282a36"} // Background
 	Gray       color.Color = themeColor{light: "#d0d0d0", dark: "#44475a"} // Borders
 	LightGray  color.Color = themeColor{light: "#4a4a4a", dark: "#a9b1d6"} // Brighter text for secondary info

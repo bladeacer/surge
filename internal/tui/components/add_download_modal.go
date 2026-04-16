@@ -59,7 +59,7 @@ func (m AddDownloadModal) View() string {
 		if m.BrowseHintIndex == i {
 			hintStyle := hintBase
 			if m.FocusedInput == i {
-				hintStyle = hintStyle.Foreground(colors.NeonPink)
+				hintStyle = hintStyle.Foreground(colors.Pink)
 			}
 			row = lipgloss.JoinHorizontal(lipgloss.Left, row, hintStyle.Render("[Tab] Browse"))
 		}

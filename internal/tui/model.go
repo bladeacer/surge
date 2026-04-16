@@ -330,7 +330,7 @@ func InitialRootModel(serverPort int, currentVersion string, service core.Downlo
 	helpModel := help.New()
 	helpModel.Styles.ShortKey = lipgloss.NewStyle().Foreground(colors.LightGray)
 	helpModel.Styles.ShortDesc = lipgloss.NewStyle().Foreground(colors.Gray)
-	helpModel.Styles.FullKey = lipgloss.NewStyle().Foreground(colors.NeonPink)
+	helpModel.Styles.FullKey = lipgloss.NewStyle().Foreground(colors.Pink)
 	helpModel.Styles.FullDesc = lipgloss.NewStyle().Foreground(colors.LightGray)
 
 	// Initialize settings input for editing
@@ -598,7 +598,7 @@ func (m *RootModel) refreshThemeCaches() {
 	rebuildStyles()
 	m.help.Styles.ShortKey = lipgloss.NewStyle().Foreground(colors.LightGray)
 	m.help.Styles.ShortDesc = lipgloss.NewStyle().Foreground(colors.Gray)
-	m.help.Styles.FullKey = lipgloss.NewStyle().Foreground(colors.NeonPink)
+	m.help.Styles.FullKey = lipgloss.NewStyle().Foreground(colors.Pink)
 	m.help.Styles.FullDesc = lipgloss.NewStyle().Foreground(colors.LightGray)
 	applyListTheme(&m.list)
 	m.logoCache = ""

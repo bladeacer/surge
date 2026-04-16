@@ -21,9 +21,9 @@ green =   '#50fa7b'
 yellow =  '#ffb86c'
 # base 0D - 
 blue =    ''
-# base 0E - NeonPurple.dark (or StateDone)
+# base 0E - Magenta.dark (or StateDone)
 magenta = '#bd93f9'
-# base 0C - NeonCyan.dark
+# base 0C - Cyan.dark
 cyan =    '#8be9fd' 
 # base 07 - White.dark (Brightest)
 white =   '#f8f8f2'
@@ -41,7 +41,7 @@ yellow =  '#ffb86c'
 blue =    ''
 # base 0F - ProgressEnd.dark (Neon Purple)
 magenta = '#bd93f9'
-# base 0C - NeonCyan.dark
+# base 0C - Cyan.dark
 cyan =    '#8be9fd' 
 # base 07 - 
 white =   ''
