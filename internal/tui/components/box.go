@@ -129,7 +129,7 @@ func RenderBtopBox(leftTitle, rightTitle string, content string, width, height i
 
 // Default colors for convenience (re-exported from colors package)
 var (
-	DefaultBorderColor = colors.Pink
-	SecondaryBorder    = colors.DarkGray
-	AccentBorder       = colors.Cyan
+	DefaultBorderColor = colors.Pink()
+	SecondaryBorder    = colors.DarkGray()
+	AccentBorder       = colors.Cyan()
 )

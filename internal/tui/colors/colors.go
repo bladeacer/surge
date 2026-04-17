@@ -40,10 +40,12 @@ type Palette struct {
 }
 
 type ThemeConfig struct {
-	IsDark bool     `toml:"is_dark"`
-	Colors *Palette `toml:"colors"` // Single scheme root
-	Dark   *Palette `toml:"dark"`   // [colors.dark]
-	Light  *Palette `toml:"light"`  // [colors.light]
+    IsDark bool `toml:"is_dark"`
+    Colors struct {
+        Dark  *Palette `toml:"dark"`  // [colors.dark]
+        Light *Palette `toml:"light"` // [colors.light]
+        *Palette                      // embedded for single [colors] files
+    } `toml:"colors"`
 }
 
 var (
@@ -154,6 +156,8 @@ func resolveThemePath(path string) string {
 func LoadTheme(path string, darkPreferred bool) {
 	modeMu.Lock()
 	isDarkMode = darkPreferred
+
+	// Start with internal defaults
 	newPalette := &defaultLight
 	if darkPreferred {
 		newPalette = &defaultDark
@@ -161,18 +165,20 @@ func LoadTheme(path string, darkPreferred bool) {
 
 	resolvedPath := resolveThemePath(path)
 
-	if path != "" {
+	// Only attempt to read if a path was actually provided and resolved
+	if resolvedPath != "" {
 		if data, err := os.ReadFile(resolvedPath); err == nil {
 			var cfg ThemeConfig
 			if err := toml.Unmarshal(data, &cfg); err == nil {
-				// 1. Check for specific mode override in file
-				if darkPreferred && cfg.Dark != nil {
-					newPalette = cfg.Dark
-				} else if !darkPreferred && cfg.Light != nil {
-					newPalette = cfg.Light
-				} else if cfg.Colors != nil {
-					// 2. Use the single [colors] block if present
-					newPalette = cfg.Colors
+				// 1. Priority: Specific [colors.dark] or [colors.light] blocks
+				if darkPreferred && cfg.Colors.Dark != nil {
+					newPalette = cfg.Colors.Dark
+				} else if !darkPreferred && cfg.Colors.Light != nil {
+					newPalette = cfg.Colors.Light
+				} else if cfg.Colors.Palette != nil {
+					// 2. Fallback: The embedded [colors] block for single-scheme files
+					// Note: With embedding, we check if the pointer inside the struct is non-nil
+					newPalette = cfg.Colors.Palette
 				}
 			}
 		}
@@ -192,21 +198,28 @@ func triggerHooks() {
 	}
 }
 
-func Background() color.Color { return lipgloss.Color(currentPalette.Primary.Background) }
-func Foreground() color.Color { return lipgloss.Color(currentPalette.Primary.Foreground) }
+func palette() *Palette {
+    modeMu.RLock()
+    p := currentPalette
+    modeMu.RUnlock()
+    return p
+}
+
+func Background() color.Color { return lipgloss.Color(palette().Primary.Background) }
+func Foreground() color.Color { return lipgloss.Color(palette().Primary.Foreground) }
 
 // Semantic Mappings
-func White() color.Color { return lipgloss.Color(currentPalette.Normal.White) }
-func Gray() color.Color { return lipgloss.Color(currentPalette.Normal.Black) }
-func Red() color.Color  { return lipgloss.Color(currentPalette.Normal.Red) }
-func Pink() color.Color  { return lipgloss.Color(currentPalette.Bright.Red) }
-func Green() color.Color { return lipgloss.Color(currentPalette.Normal.Green) }
-func Orange() color.Color { return lipgloss.Color(currentPalette.Normal.Yellow) }
-func Blue() color.Color { return lipgloss.Color(currentPalette.Normal.Blue) }
-func Magenta() color.Color { return lipgloss.Color(currentPalette.Normal.Magenta) }
-func Cyan() color.Color { return lipgloss.Color(currentPalette.Normal.Cyan) }
-func LightGray() color.Color { return lipgloss.Color(currentPalette.Bright.Black) }
-func DarkGray() color.Color { return lipgloss.Color(currentPalette.Bright.Black) }
+func White() color.Color { return lipgloss.Color(palette().Normal.White) }
+func Gray() color.Color { return lipgloss.Color(palette().Normal.Black) }
+func Red() color.Color  { return lipgloss.Color(palette().Normal.Red) }
+func Pink() color.Color  { return lipgloss.Color(palette().Bright.Red) }
+func Green() color.Color { return lipgloss.Color(palette().Normal.Green) }
+func Orange() color.Color { return lipgloss.Color(palette().Normal.Yellow) }
+func Blue() color.Color { return lipgloss.Color(palette().Normal.Blue) }
+func Magenta() color.Color { return lipgloss.Color(palette().Normal.Magenta) }
+func Cyan() color.Color { return lipgloss.Color(palette().Normal.Cyan) }
+func LightGray() color.Color { return lipgloss.Color(palette().Bright.Black) }
+func DarkGray() color.Color { return lipgloss.Color(palette().Bright.Black) }
 
 // State Mappings
 func StateError() color.Color       { return Red() }
@@ -216,8 +229,8 @@ func StateDone() color.Color        { return Magenta() }
 func StateVersion() color.Color     { return Blue() }
 
 // Progress Mappings
-func ProgressStart() color.Color { return lipgloss.Color(currentPalette.Bright.Red) } // Neon Pink
-func ProgressEnd() color.Color   { return lipgloss.Color(currentPalette.Bright.Magenta) }
+func ProgressStart() color.Color { return lipgloss.Color(palette().Bright.Red) } // Neon Pink
+func ProgressEnd() color.Color   { return lipgloss.Color(palette().Bright.Magenta) }
 
 type themeColor struct {
 	light string
@@ -253,6 +266,11 @@ func SetDarkMode(isDark bool) {
 	modeMu.Lock()
 	changed := isDarkMode != isDark
 	isDarkMode = isDark
+	if isDark {
+		currentPalette = &defaultDark
+	} else {
+		currentPalette = &defaultLight
+	}
 	modeMu.Unlock()
 
 	if !changed {
