@@ -64,9 +64,15 @@ func rebuildStyles() {
 	ListStyle = ActivePaneStyle // Download list is the primary focused pane on startup
 	DetailStyle = PaneStyle
 
+<<<<<<< HEAD
+	TitleStyle = lipgloss.NewStyle().Foreground(colors.Cyan).Bold(true).MarginBottom(1)
+	PaneTitleStyle = lipgloss.NewStyle().Foreground(colors.LightGray).Bold(true)
+	TabStyle = lipgloss.NewStyle().Foreground(colors.LightGray).Padding(DefaultPaddingY, DefaultPaddingX)
+=======
 	TitleStyle = lipgloss.NewStyle().Foreground(colors.Cyan()).Bold(true).MarginBottom(1)
-	PaneTitleStyle = lipgloss.NewStyle().Foreground(colors.LighGray()).Bold(true)
+	PaneTitleStyle = lipgloss.NewStyle().Foreground(colors.Cyan()).Bold(true)
 	TabStyle = lipgloss.NewStyle().Foreground(colors.LightGray()).Padding(DefaultPaddingY, DefaultPaddingX)
+>>>>>>> e1c23ed (feat: Decoupled colour scheme from theme)
 
 	ActiveTabStyle = lipgloss.NewStyle().
 		Foreground(colors.Pink()).

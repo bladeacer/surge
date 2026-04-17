@@ -111,7 +111,11 @@ func newDownloadDelegate() downloadDelegate {
 		selTitleStyle:  selTitle,
 		selDescStyle:   selDesc,
 		prefixNormal:   "  ",
-		prefixSelected: lipgloss.NewStyle().Foreground(colors.Pink()).Render("\u258c "),
+<<<<<<< HEAD
+		prefixSelected: lipgloss.NewStyle().Foreground(colors.Pink).Render("\u258c "),
+=======
+		prefixSelected: lipgloss.NewStyle().Foreground(colors.Pink()).Render("▌ "),
+>>>>>>> e1c23ed (feat: Decoupled colour scheme from theme)
 	}
 }
 

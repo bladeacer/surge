@@ -248,8 +248,13 @@ func renderSettingsListViewport(settingsMeta []config.SettingMeta, selectedRow, 
 		prefix := "  "
 		style := lipgloss.NewStyle().Foreground(colors.LightGray())
 		if idx == selectedRow {
+<<<<<<< HEAD
 			prefix = "\u25b8 "
+			style = lipgloss.NewStyle().Foreground(colors.Magenta).Bold(true)
+=======
+			prefix = "▸ "
 			style = lipgloss.NewStyle().Foreground(colors.Magenta()).Bold(true)
+>>>>>>> e1c23ed (feat: Decoupled colour scheme from theme)
 		}
 
 		if meta.Key == "max_global_connections" {

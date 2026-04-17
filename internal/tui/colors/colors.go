@@ -3,13 +3,193 @@ package colors
 import (
 	"image/color"
 	"sync"
+	"os"
 
 	"charm.land/lipgloss/v2"
+	"github.com/BurntSushi/toml"
 )
+
+type Palette struct {
+	Name string `toml:"name"`
+	Primary struct {
+		Background string `toml:"background"`
+		Foreground string `toml:"foreground"`
+	} `toml:"primary"`
+	Normal struct {
+		Black   string `toml:"black"`
+		Red     string `toml:"red"`
+		Green   string `toml:"green"`
+		Yellow  string `toml:"yellow"`
+		Blue    string `toml:"blue"`
+		Magenta string `toml:"magenta"`
+		Cyan    string `toml:"cyan"`
+		White   string `toml:"white"`
+	} `toml:"normal"`
+	Bright struct {
+		Black   string `toml:"black"` // Used for LightGray/Secondary info
+		Red     string `toml:"red"`   // Used for ProgressStart (Pink)
+		Green   string `toml:"green"`
+		Yellow  string `toml:"yellow"`
+		Blue    string `toml:"blue"`
+		Magenta string `toml:"magenta"` // Used for ProgressEnd
+		Cyan    string `toml:"cyan"`
+		White   string `toml:"white"`
+	} `toml:"bright"`
+}
+
+type ThemeConfig struct {
+	IsDark bool     `toml:"is_dark"`
+	Colors *Palette `toml:"colors"` // Single scheme root
+	Dark   *Palette `toml:"dark"`   // [colors.dark]
+	Light  *Palette `toml:"light"`  // [colors.light]
+}
+
+var (
+	currentPalette *Palette
+	isDarkMode bool
+	modeMu   sync.RWMutex
+	hooks    []func()
+	hookMu   sync.RWMutex
+)
+
+var defaultDark = Palette{
+	Primary: struct {
+		Background string `toml:"background"`
+		Foreground string `toml:"foreground"`
+	}{Background: "#282a36", Foreground: "#f8f8f2"},
+
+	Normal: struct {
+		Black   string `toml:"black"`
+		Red     string `toml:"red"`
+		Green   string `toml:"green"`
+		Yellow  string `toml:"yellow"`
+		Blue    string `toml:"blue"`
+		Magenta string `toml:"magenta"`
+		Cyan    string `toml:"cyan"`
+		White   string `toml:"white"`
+	}{Black: "#44475a", Red: "#ff5555", Green: "#50fa7b", Yellow: "#ffb86c", Blue: "#58a6ff", Magenta: "#bd93f9", Cyan: "#8be9fd", White: "#f8f8f2"},
+
+	Bright: struct {
+		Black   string `toml:"black"`
+		Red     string `toml:"red"`
+		Green   string `toml:"green"`
+		Yellow  string `toml:"yellow"`
+		Blue    string `toml:"blue"`
+		Magenta string `toml:"magenta"`
+		Cyan    string `toml:"cyan"`
+		White   string `toml:"white"`
+	}{Black: "#a9b1d6", Red: "#ff79c6", Green: "#50fa7b", Yellow: "#ffb86c", Blue: "#58a6ff", Magenta: "#bd93f9", Cyan: "#8be9fd", White: "#f8f8f2"},
+}
+
+var defaultLight = Palette{
+	Primary: struct {
+		Background string `toml:"background"`
+		Foreground string `toml:"foreground"`
+	}{Background: "#ffffff", Foreground: "#1a1a1a"},
+
+	Normal: struct {
+		Black   string `toml:"black"`
+		Red     string `toml:"red"`
+		Green   string `toml:"green"`
+		Yellow  string `toml:"yellow"`
+		Blue    string `toml:"blue"`
+		Magenta string `toml:"magenta"`
+		Cyan    string `toml:"cyan"`
+		White   string `toml:"white"`
+	}{Black: "#d0d0d0", Red: "#d32f2f", Green: "#2e7d32", Yellow: "#f57c00", Blue: "#005cc5", Magenta: "#7b1fa2", Cyan: "#0073a8", White: "#1a1a1a"},
+
+	Bright: struct {
+		Black   string `toml:"black"`
+		Red     string `toml:"red"`
+		Green   string `toml:"green"`
+		Yellow  string `toml:"yellow"`
+		Blue    string `toml:"blue"`
+		Magenta string `toml:"magenta"`
+		Cyan    string `toml:"cyan"`
+		White   string `toml:"white"`
+	}{Black: "#4a4a4a", Red: "#d10074", Green: "#2e7d32", Yellow: "#f57c00", Blue: "#005cc5", Magenta: "#7b1fa2", Cyan: "#0073a8", White: "#1a1a1a"},
+}
+
+func init() {
+	currentPalette = &defaultDark
+	isDarkMode = true
+}
+
+func LoadTheme(path string, darkPreferred bool) {
+	modeMu.Lock()
+	isDarkMode = darkPreferred
+	newPalette := &defaultLight
+	if darkPreferred {
+		newPalette = &defaultDark
+	}
+
+	if path != "" {
+		if data, err := os.ReadFile(path); err == nil {
+			var cfg ThemeConfig
+			if err := toml.Unmarshal(data, &cfg); err == nil {
+				// 1. Check for specific mode override in file
+				if darkPreferred && cfg.Dark != nil {
+					newPalette = cfg.Dark
+				} else if !darkPreferred && cfg.Light != nil {
+					newPalette = cfg.Light
+				} else if cfg.Colors != nil {
+					// 2. Use the single [colors] block if present
+					newPalette = cfg.Colors
+				}
+			}
+		}
+	}
+
+	currentPalette = newPalette
+	modeMu.Unlock()
+	triggerHooks()
+}
+
+func triggerHooks() {
+	hookMu.RLock()
+	registeredHooks := append([]func(){}, hooks...)
+	hookMu.RUnlock()
+	for _, fn := range registeredHooks {
+		fn()
+	}
+}
+
+func Background() color.Color { return lipgloss.Color(currentPalette.Primary.Background) }
+func Foreground() color.Color { return lipgloss.Color(currentPalette.Primary.Foreground) }
+
+// Semantic Mappings
+func White() color.Color { return lipgloss.Color(currentPalette.Normal.White) }
+func Gray() color.Color { return lipgloss.Color(currentPalette.Normal.Black) }
+func Red() color.Color  { return lipgloss.Color(currentPalette.Normal.Red) }
+func Pink() color.Color  { return lipgloss.Color(currentPalette.Bright.Red) }
+func Green() color.Color { return lipgloss.Color(currentPalette.Normal.Green) }
+func Orange() color.Color { return lipgloss.Color(currentPalette.Normal.Yellow) }
+func Blue() color.Color { return lipgloss.Color(currentPalette.Normal.Blue) }
+func Magenta() color.Color { return lipgloss.Color(currentPalette.Normal.Magenta) }
+func Cyan() color.Color { return lipgloss.Color(currentPalette.Normal.Cyan) }
+func LightGray() color.Color { return lipgloss.Color(currentPalette.Bright.Black) }
+func DarkGray() color.Color { return lipgloss.Color(currentPalette.Bright.Black) }
+
+// State Mappings
+func StateError() color.Color       { return Red() }
+func StatePaused() color.Color      { return Orange() }
+func StateDownloading() color.Color { return Green() }
+func StateDone() color.Color        { return Magenta() }
+func StateVersion() color.Color     { return Blue() }
+
+// Progress Mappings
+func ProgressStart() color.Color { return lipgloss.Color(currentPalette.Bright.Red) } // Neon Pink
+func ProgressEnd() color.Color   { return lipgloss.Color(currentPalette.Bright.Magenta) }
 
 type themeColor struct {
 	light string
 	dark  string
+}
+
+func IsDarkMode() bool {
+	modeMu.RLock()
+	defer modeMu.RUnlock()
+	return isDarkMode
 }
 
 func (c themeColor) RGBA() (r, g, b, a uint32) {
@@ -19,56 +199,6 @@ func (c themeColor) RGBA() (r, g, b, a uint32) {
 	}
 	return lipgloss.Color(chosen).RGBA()
 }
-
-// TODO: Load custom colour scheme like Alacritty
-
-// TODO: Rename to use X11/Alacritty colour names
-
-// TODO: Use a TOML spec similar to Alacritty's
-
-// Support either [colors] is_dark = true/false (single colour scheme in fiile) or [colors.dark.] and [colors.light.] in the same file
-
-// === Color Palette ===
-// Vibrant "Cyberpunk" Neon Colors (Dark Mode) + High Contrast (Light Mode)
-var (
-	DarkGray   color.Color = themeColor{light: "#ffffff", dark: "#282a36"} // Background
-	White      color.Color = themeColor{light: "#1a1a1a", dark: "#f8f8f2"} // Text
-
-	Gray       color.Color = themeColor{light: "#d0d0d0", dark: "#44475a"} // Borders
-	Red       color.Color = themeColor{light: "#d32f2f", dark: "#ff5555"} // Red - Error/Stopped
-	Pink   color.Color = themeColor{light: "#d10074", dark: "#ff79c6"}
-	Green color.Color = themeColor{light: "#2e7d32", dark: "#50fa7b"} // Green - Downloading
-	Orange      color.Color = themeColor{light: "#f57c00", dark: "#ffb86c"} // Orange - Paused/Queued
-
-	Blue color.Color = themeColor{light: "#005cc5", dark: "#58a6ff"}
-	Magenta color.Color = themeColor{light: "#7b1fa2", dark: "#bd93f9"}
-	Cyan   color.Color = themeColor{light: "#0073a8", dark: "#8be9fd"}
-	
-	// TODO: Does not exactly exist in Base16?
-	LightGray  color.Color = themeColor{light: "#4a4a4a", dark: "#a9b1d6"} // Brighter text for secondary info
-)
-
-// === Semantic State Colors ===
-var (
-	StateError       color.Color = Red
-	StatePaused      color.Color = Orange
-	StateDownloading color.Color = Green
-	StateDone        color.Color = Magenta
-	StateVersion color.Color = Blue
-)
-
-// === Progress Bar Colors ===
-var (
-	ProgressStart color.Color = Pink
-	ProgressEnd   color.Color = Magenta
-)
-
-var (
-	darkMode bool
-	modeMu   sync.RWMutex
-	hooks    []func()
-	hookMu   sync.RWMutex
-)
 
 // RegisterThemeChangeHook registers a callback that runs after theme mode flips.
 func RegisterThemeChangeHook(fn func()) {
@@ -83,8 +213,8 @@ func RegisterThemeChangeHook(fn func()) {
 // SetDarkMode updates the active theme mode and notifies registered listeners.
 func SetDarkMode(isDark bool) {
 	modeMu.Lock()
-	changed := darkMode != isDark
-	darkMode = isDark
+	changed := isDarkMode != isDark
+	isDarkMode = isDark
 	modeMu.Unlock()
 
 	if !changed {
@@ -97,13 +227,6 @@ func SetDarkMode(isDark bool) {
 	for _, fn := range registeredHooks {
 		fn()
 	}
-}
-
-// IsDarkMode reports the current color mode used by the palette.
-func IsDarkMode() bool {
-	modeMu.RLock()
-	defer modeMu.RUnlock()
-	return darkMode
 }
 
 // ThemeColor returns the light or dark variant based on current mode.

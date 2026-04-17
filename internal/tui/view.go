@@ -71,7 +71,7 @@ func (m RootModel) View() tea.View {
 
 	// Terminal too small to render any meaningful layout
 	if m.width < MinTermWidth || m.height < MinTermHeight {
-		msg := lipgloss.NewStyle().Foreground(colors.Cyan).Render(fmt.Sprintf("Terminal too small (min: %d×%d)", MinTermWidth, MinTermHeight))
+		msg := lipgloss.NewStyle().Foreground(colors.Cyan()).Render(fmt.Sprintf("Terminal too small (min: %d×%d)", MinTermWidth, MinTermHeight))
 		return m.wrapView(lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, msg))
 	}
 
@@ -82,7 +82,7 @@ func (m RootModel) View() tea.View {
 			Detail:      "Please wait",
 			Keys:        components.NoKeys{},
 			Help:        m.help,
-			BorderColor: colors.Cyan,
+			BorderColor: colors.Cyan(),
 			Width:       60,
 			Height:      10,
 		}
@@ -103,7 +103,7 @@ func (m RootModel) View() tea.View {
 			BrowseHintIndex: 2,
 			Help:            m.help,
 			HelpKeys:        m.keys.Input,
-			BorderColor:     colors.Pink,
+			BorderColor:     colors.Pink(),
 			Width:           80,
 			Height:          11,
 		}
@@ -125,7 +125,7 @@ func (m RootModel) View() tea.View {
 			&fp,
 			m.help,
 			m.keys.FilePicker,
-			colors.Pink,
+			colors.Pink(),
 		)
 		// Resolve dynamic dimensions
 		w, h := GetDynamicModalDimensions(m.width, m.height, 60, 10, 90, 20)
@@ -151,13 +151,9 @@ func (m RootModel) View() tea.View {
 			Detail:      truncateString(m.duplicateInfo, 50),
 			Keys:        m.keys.Duplicate,
 			Help:        m.help,
-<<<<<<< HEAD
-			BorderColor: colors.NeonPink,
-=======
-			BorderColor: colors.Pink,
+			BorderColor: colors.Pink(),
 			Width:       60,
 			Height:      10,
->>>>>>> 29b8130 (feat: Removed Neon prefix for colours)
 		}
 		// Resolve dynamic dimensions
 		w, _ := GetDynamicModalDimensions(m.width, m.height, 40, 6, 60, 0)
@@ -193,9 +189,13 @@ func (m RootModel) View() tea.View {
 			Help:            m.help,
 			HelpKeys:        m.keys.Extension,
 <<<<<<< HEAD
+<<<<<<< HEAD
 			BorderColor:     colors.NeonCyan,
 =======
 			BorderColor:     colors.Cyan,
+=======
+			BorderColor:     colors.Cyan(),
+>>>>>>> e1c23ed (feat: Decoupled colour scheme from theme)
 			Width:           86,
 			Height:          13,
 >>>>>>> 29b8130 (feat: Removed Neon prefix for colours)
@@ -217,7 +217,7 @@ func (m RootModel) View() tea.View {
 			&fp,
 			m.help,
 			m.keys.FilePicker,
-			colors.Cyan,
+			colors.Cyan(),
 		)
 		// Resolve dynamic dimensions
 		w, h := GetDynamicModalDimensions(m.width, m.height, 60, 10, 90, 20)
@@ -237,9 +237,13 @@ func (m RootModel) View() tea.View {
 			Keys:        m.keys.BatchConfirm,
 			Help:        m.help,
 <<<<<<< HEAD
+<<<<<<< HEAD
 			BorderColor: colors.NeonCyan,
 =======
 			BorderColor: colors.Cyan,
+=======
+			BorderColor: colors.Cyan(),
+>>>>>>> e1c23ed (feat: Decoupled colour scheme from theme)
 			Width:       60,
 			Height:      10,
 >>>>>>> 29b8130 (feat: Removed Neon prefix for colours)
@@ -266,9 +270,13 @@ func (m RootModel) View() tea.View {
 			Keys:        m.keys.Update,
 			Help:        m.help,
 <<<<<<< HEAD
+<<<<<<< HEAD
 			BorderColor: colors.NeonCyan,
 =======
 			BorderColor: colors.Cyan,
+=======
+			BorderColor: colors.Cyan(),
+>>>>>>> e1c23ed (feat: Decoupled colour scheme from theme)
 			Width:       60,
 			Height:      12,
 >>>>>>> 29b8130 (feat: Removed Neon prefix for colours)
@@ -293,9 +301,13 @@ func (m RootModel) View() tea.View {
 			Help:            m.help,
 			HelpKeys:        m.keys.Input,
 <<<<<<< HEAD
+<<<<<<< HEAD
 			BorderColor:     colors.NeonPink,
 =======
 			BorderColor:     colors.Pink,
+=======
+			BorderColor:     colors.Pink(),
+>>>>>>> e1c23ed (feat: Decoupled colour scheme from theme)
 			Width:           80,
 			Height:          8,
 >>>>>>> 29b8130 (feat: Removed Neon prefix for colours)
@@ -317,11 +329,15 @@ func (m RootModel) View() tea.View {
 			HelpKeys:    m.keys.Dashboard,
 			Help:        m.help,
 <<<<<<< HEAD
+<<<<<<< HEAD
 			BorderColor: colors.NeonCyan,
 			Width:       w,
 			Height:      h,
 =======
 			BorderColor: colors.Cyan,
+=======
+			BorderColor: colors.Cyan(),
+>>>>>>> e1c23ed (feat: Decoupled colour scheme from theme)
 			Width:       modalW,
 			Height:      modalH,
 >>>>>>> 29b8130 (feat: Removed Neon prefix for colours)
@@ -336,11 +352,15 @@ func (m RootModel) View() tea.View {
 	// Footer - keybindings on left, version on bottom-right
 	helpText := m.help.View(m.keys.Dashboard)
 <<<<<<< HEAD
+<<<<<<< HEAD
 	versionBlue := colors.ThemeColor("#005cc5", "#58a6ff")
 	versionText := lipgloss.NewStyle().Foreground(versionBlue).Render(fmt.Sprintf("v%s", m.CurrentVersion))
 
 =======
 	versionText := lipgloss.NewStyle().Foreground(colors.StateVersion).Render(fmt.Sprintf("v%s", m.CurrentVersion))
+=======
+	versionText := lipgloss.NewStyle().Foreground(colors.StateVersion()).Render(fmt.Sprintf("v%s", m.CurrentVersion))
+>>>>>>> e1c23ed (feat: Decoupled colour scheme from theme)
 	footerContentWidth := availableWidth
 	leftFooterWidth := footerContentWidth - lipgloss.Width(versionText)
 	if leftFooterWidth < 0 {
@@ -380,7 +400,7 @@ func (m RootModel) View() tea.View {
 	} else {
 		// Default Placeholder
 		detailContent = lipgloss.Place(detailWidth, 8, lipgloss.Center, lipgloss.Center,
-			lipgloss.NewStyle().Foreground(colors.Cyan).Render("No Download Selected"))
+			lipgloss.NewStyle().Foreground(colors.Cyan()).Render("No Download Selected"))
 	}
 
 	// Exact height from content + borders
@@ -453,7 +473,7 @@ func (m RootModel) View() tea.View {
 	}
 
 	// Server info vars
-	greenDot := lipgloss.NewStyle().Foreground(colors.StateDownloading).Render("●")
+	greenDot := lipgloss.NewStyle().Foreground(colors.StateDownloading()).Render("●")
 	host := m.ServerHost
 	if host == "" {
 		host = "127.0.0.1"
@@ -462,9 +482,9 @@ func (m RootModel) View() tea.View {
 
 	var statusLine string
 	if m.IsRemote {
-		statusLine = lipgloss.NewStyle().Foreground(colors.Cyan).Bold(true).Render(" Connected to " + serverAddr)
+		statusLine = lipgloss.NewStyle().Foreground(colors.Cyan()).Bold(true).Render(" Connected to " + serverAddr)
 	} else {
-		statusLine = lipgloss.NewStyle().Foreground(colors.Cyan).Bold(true).Render(" Serving at " + serverAddr)
+		statusLine = lipgloss.NewStyle().Foreground(colors.Cyan()).Bold(true).Render(" Serving at " + serverAddr)
 	}
 
 	serverContentWidth := logoWidth - (BoxStyle.GetHorizontalFrameSize() * 2)
@@ -483,13 +503,13 @@ func (m RootModel) View() tea.View {
 	// Render logo column (or just server info when too narrow)
 	var logoColumn string
 	if hideLogo {
-		logoColumn = renderBtopBox("", PaneTitleStyle.Render(" Server "), serverPortContent, logoWidth, serverBoxHeight, colors.Gray)
+		logoColumn = renderBtopBox("", PaneTitleStyle.Render(" Server "), serverPortContent, logoWidth, serverBoxHeight, colors.Gray())
 	} else {
 		var logoContent string
 		if m.logoCache != "" {
 			logoContent = m.logoCache
 		} else {
-			gradientLogo := ApplyGradient(logoText, colors.Pink, colors.Magenta)
+			gradientLogo := ApplyGradient(logoText, colors.Pink(), colors.Magenta())
 			m.logoCache = lipgloss.NewStyle().Render(gradientLogo)
 			logoContent = m.logoCache
 		}
@@ -499,7 +519,7 @@ func (m RootModel) View() tea.View {
 			logoBoxHeight = 1
 		}
 		logoBox := lipgloss.Place(logoWidth, logoBoxHeight, lipgloss.Center, lipgloss.Center, logoContent)
-		serverBox := renderBtopBox("", PaneTitleStyle.Render(" Server "), serverPortContent, logoWidth, serverBoxHeight, colors.Gray)
+		serverBox := renderBtopBox("", PaneTitleStyle.Render(" Server "), serverPortContent, logoWidth, serverBoxHeight, colors.Gray())
 		logoColumn = lipgloss.JoinVertical(lipgloss.Left, logoBox, serverBox)
 	}
 
@@ -517,9 +537,9 @@ func (m RootModel) View() tea.View {
 	logContent := m.logViewport.View()
 
 	// Use different border color when focused
-	logBorderColor := colors.Gray
+	logBorderColor := colors.Gray()
 	if m.logFocused {
-		logBorderColor = colors.Pink
+		logBorderColor = colors.Pink()
 	}
 	logBox := renderBtopBox(PaneTitleStyle.Render(" Activity Log "), "", logContent, logWidth, headerHeight, logBorderColor)
 
@@ -609,7 +629,7 @@ func (m RootModel) View() tea.View {
 		graphVisual := renderMultiLineGraph(graphData, graphAreaWidth, graphContentHeight, maxSpeed, nil)
 
 		// Y-axis labels
-		axisStyle := lipgloss.NewStyle().Width(axisWidth).Foreground(colors.Cyan).Align(lipgloss.Right)
+		axisStyle := lipgloss.NewStyle().Width(axisWidth).Foreground(colors.Cyan()).Align(lipgloss.Right)
 		axisLines := buildAxisLines(graphContentHeight, axisStyle)
 		axisColumn := lipgloss.NewStyle().
 			Height(graphContentHeight).
@@ -634,9 +654,9 @@ func (m RootModel) View() tea.View {
 		speedMbps := currentSpeed * 8
 		topMbps := topSpeed * 8
 
-		valueStyle := lipgloss.NewStyle().Foreground(colors.Cyan).Bold(true)
-		labelStyleStats := lipgloss.NewStyle().Foreground(colors.LightGray)
-		dimStyle := lipgloss.NewStyle().Foreground(colors.Gray)
+		valueStyle := lipgloss.NewStyle().Foreground(colors.Cyan()).Bold(true)
+		labelStyleStats := lipgloss.NewStyle().Foreground(colors.LightGray())
+		dimStyle := lipgloss.NewStyle().Foreground(colors.Gray())
 
 		statsContent := lipgloss.JoinVertical(lipgloss.Left,
 			fmt.Sprintf("%s %s", valueStyle.Render("▼"), valueStyle.Render(fmt.Sprintf("%.2f MB/s", currentSpeed))),
@@ -651,7 +671,7 @@ func (m RootModel) View() tea.View {
 		// Style stats with a border box
 		statsBoxStyle := lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(colors.Gray).
+			BorderForeground(colors.Gray()).
 			Padding(0, 1).
 			Width(statsBoxWidth).
 			Height(graphContentHeight)
@@ -663,7 +683,7 @@ func (m RootModel) View() tea.View {
 		graphVisual := renderMultiLineGraph(graphData, graphAreaWidth, graphContentHeight, maxSpeed, nil)
 
 		// Create Y-axis (right side of graph)
-		axisStyle := lipgloss.NewStyle().Width(axisWidth).Foreground(colors.Cyan).Align(lipgloss.Right)
+		axisStyle := lipgloss.NewStyle().Width(axisWidth).Foreground(colors.Cyan()).Align(lipgloss.Right)
 		axisLines := buildAxisLines(graphContentHeight, axisStyle)
 
 		axisColumn := lipgloss.NewStyle().
@@ -686,7 +706,7 @@ func (m RootModel) View() tea.View {
 	)
 
 	// Render single network activity box containing stats + graph
-	graphBox := renderBtopBox(PaneTitleStyle.Render(" Network Activity "), "", graphWithPadding, rightWidth, graphHeight, colors.Cyan)
+	graphBox := renderBtopBox(PaneTitleStyle.Render(" Network Activity "), "", graphWithPadding, rightWidth, graphHeight, colors.Cyan())
 
 	// Don't include graph box when too small to render
 	renderGraphBox := graphHeight >= minGraphHeight
@@ -698,15 +718,15 @@ func (m RootModel) View() tea.View {
 	// Search bar (shown when search is active or has a query)
 	var leftTitle string
 	if m.searchActive || m.searchQuery != "" {
-		searchIcon := lipgloss.NewStyle().Foreground(colors.Cyan).Render("> ")
+		searchIcon := lipgloss.NewStyle().Foreground(colors.Cyan()).Render("> ")
 		var searchDisplay string
 		if m.searchActive {
 			searchDisplay = m.searchInput.View() +
-				lipgloss.NewStyle().Foreground(colors.Gray).Render(" [esc exit]")
+				lipgloss.NewStyle().Foreground(colors.Gray()).Render(" [esc exit]")
 		} else {
 			// Show query with clear hint
-			searchDisplay = lipgloss.NewStyle().Foreground(colors.Pink).Render(m.searchQuery) +
-				lipgloss.NewStyle().Foreground(colors.Gray).Render(" [f to clear]")
+			searchDisplay = lipgloss.NewStyle().Foreground(colors.Pink()).Render(m.searchQuery) +
+				lipgloss.NewStyle().Foreground(colors.Gray()).Render(" [f to clear]")
 		}
 		// Pad the search bar to look like a title block
 		leftTitle = " " + lipgloss.JoinHorizontal(lipgloss.Left, searchIcon, searchDisplay) + " "
@@ -724,10 +744,10 @@ func (m RootModel) View() tea.View {
 
 		if m.searchQuery != "" {
 			listContent = lipgloss.Place(listContentWidth, listContentHeight, lipgloss.Center, lipgloss.Center,
-				lipgloss.NewStyle().Foreground(colors.Cyan).Render("No matching downloads"))
+				lipgloss.NewStyle().Foreground(colors.Cyan()).Render("No matching downloads"))
 		} else {
 			listContent = lipgloss.Place(listContentWidth, listContentHeight, lipgloss.Center, lipgloss.Center,
-				lipgloss.NewStyle().Foreground(colors.Cyan).Render("No downloads"))
+				lipgloss.NewStyle().Foreground(colors.Cyan()).Render("No downloads"))
 		}
 	} else {
 		// ensure list fills the height
@@ -740,16 +760,16 @@ func (m RootModel) View() tea.View {
 	listInner := lipgloss.NewStyle().Padding(1, 2).Render(listInnerContent)
 
 	// Determine border color for downloads box based on focus
-	downloadsBorderColor := colors.Pink
+	downloadsBorderColor := colors.Pink()
 	if m.logFocused {
-		downloadsBorderColor = colors.Gray
+		downloadsBorderColor = colors.Gray()
 	}
 	listBox := renderBtopBox(leftTitle, PaneTitleStyle.Render(" Downloads "), listInner, leftWidth, listHeight, downloadsBorderColor)
 
 	// --- SECTION 4: DETAILS PANE (Middle Right) ---
 	// detailContent and selected are already calculated in the layout section
 
-	detailBox := renderBtopBox("", PaneTitleStyle.Render(" File Details "), detailContent, rightWidth, detailHeight, colors.Gray)
+	detailBox := renderBtopBox("", PaneTitleStyle.Render(" File Details "), detailContent, rightWidth, detailHeight, colors.Gray())
 
 	// --- SECTION 5: CHUNK MAP PANE (Bottom Right) ---
 	var chunkBox string
@@ -784,11 +804,11 @@ func (m RootModel) View() tea.View {
 				}
 
 				chunkContent = lipgloss.Place(placeholderWidth, chunkMapHeight-2, lipgloss.Center, lipgloss.Center,
-					lipgloss.NewStyle().Foreground(colors.Gray).Render(msg))
+					lipgloss.NewStyle().Foreground(colors.Gray()).Render(msg))
 			}
 		}
 
-		chunkBox = renderBtopBox("", PaneTitleStyle.Render(" Chunk Map "), chunkContent, rightWidth, chunkMapHeight, colors.Gray)
+		chunkBox = renderBtopBox("", PaneTitleStyle.Render(" Chunk Map "), chunkContent, rightWidth, chunkMapHeight, colors.Gray())
 	}
 
 	// --- ASSEMBLY ---
@@ -859,7 +879,7 @@ func renderFocusedDetails(d *DownloadModel, w int, spinnerView string) string {
 
 	// Separator Style
 	divider := lipgloss.NewStyle().
-		Foreground(colors.Gray).
+		Foreground(colors.Gray()).
 		Width(contentWidth).
 		Render("\n" + strings.Repeat("\u2500", contentWidth) + "\n")
 
@@ -872,7 +892,7 @@ func renderFocusedDetails(d *DownloadModel, w int, spinnerView string) string {
 	statusStr := getDownloadStatus(d, spinnerView)
 	statusStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(colors.Gray).
+		BorderForeground(colors.Gray()).
 		Width(contentWidth).
 		Align(lipgloss.Center)
 
@@ -900,10 +920,16 @@ func renderFocusedDetails(d *DownloadModel, w int, spinnerView string) string {
 	}
 
 	fileInfoContent := lipgloss.JoinVertical(lipgloss.Left,
+<<<<<<< HEAD
 		lipgloss.JoinHorizontal(lipgloss.Left, StatsLabelStyle.Render("URL: "), StatsValueStyle.Render(truncateMiddle(d.URL, valueWidth))),
 		lipgloss.JoinHorizontal(lipgloss.Left, StatsLabelStyle.Render("File: "), StatsValueStyle.Render(truncateString(displayFilename, valueWidth))),
 		lipgloss.JoinHorizontal(lipgloss.Left, StatsLabelStyle.Render("Path: "), StatsValueStyle.Render(truncateMiddle(displayPath, valueWidth))),
 		lipgloss.JoinHorizontal(lipgloss.Left, StatsLabelStyle.Render("ID:   "), lipgloss.NewStyle().Foreground(colors.LightGray).Render(truncateString(d.ID, valueWidth))),
+=======
+		lipgloss.JoinHorizontal(lipgloss.Left, StatsLabelStyle.Render("File: "), StatsValueStyle.Render(truncateString(displayFilename, contentWidth-12))),
+		lipgloss.JoinHorizontal(lipgloss.Left, StatsLabelStyle.Render("Path: "), StatsValueStyle.Render(truncateString(displayPath, contentWidth-12))),
+		lipgloss.JoinHorizontal(lipgloss.Left, StatsLabelStyle.Render("ID:   "), lipgloss.NewStyle().Foreground(colors.LightGray()).Render(truncateString(d.ID, contentWidth-12))),
+>>>>>>> e1c23ed (feat: Decoupled colour scheme from theme)
 	)
 	fileSection := sectionStyle.Render(fileInfoContent)
 
@@ -911,6 +937,7 @@ func renderFocusedDetails(d *DownloadModel, w int, spinnerView string) string {
 	labelStr := "Progress: "
 	progLabelStyle := lipgloss.NewStyle().Foreground(colors.NeonCyan)
 
+<<<<<<< HEAD
 	var progContent string
 	if contentWidth > 45 { // Enough space for "Progress: " (10) + some bar + padding
 		// Horizontal layout: Progress: [████████      ]
@@ -946,6 +973,9 @@ func renderFocusedDetails(d *DownloadModel, w int, spinnerView string) string {
 	progSection := lipgloss.NewStyle().Width(contentWidth).Render(progContent)
 =======
 	progLabel := lipgloss.NewStyle().Foreground(colors.Cyan).Render("Progress: ")
+=======
+	progLabel := lipgloss.NewStyle().Foreground(colors.Cyan()).Render("Progress: ")
+>>>>>>> e1c23ed (feat: Decoupled colour scheme from theme)
 	progContent := lipgloss.JoinVertical(lipgloss.Left, progLabel, progView)
 
 	// Progress bar has its own width handling usually, but let's wrap it to be sure
@@ -1061,7 +1091,7 @@ func renderFocusedDetails(d *DownloadModel, w int, spinnerView string) string {
 		}
 		// More prominent Mirrors display
 		mirrorLabel := StatsLabelStyle.Render("Mirrors")
-		mirrorStats := lipgloss.NewStyle().Foreground(colors.LightGray).Render(fmt.Sprintf("%d Active / %d Total (%d Errors)", activeCount, total, errorCount))
+		mirrorStats := lipgloss.NewStyle().Foreground(colors.LightGray()).Render(fmt.Sprintf("%d Active / %d Total (%d Errors)", activeCount, total, errorCount))
 
 		mirrorSection = sectionStyle.Render(lipgloss.JoinVertical(lipgloss.Left, mirrorLabel, mirrorStats))
 	}
@@ -1070,7 +1100,7 @@ func renderFocusedDetails(d *DownloadModel, w int, spinnerView string) string {
 	var errorSection string
 	if d.err != nil {
 		errorSection = sectionStyle.
-			Render(lipgloss.NewStyle().Foreground(colors.StateError).Render("Error: " + d.err.Error()))
+			Render(lipgloss.NewStyle().Foreground(colors.StateError()).Render("Error: " + d.err.Error()))
 	}
 
 	// Combine with Dividers
@@ -1103,10 +1133,10 @@ func renderFocusedDetails(d *DownloadModel, w int, spinnerView string) string {
 
 func getDownloadStatus(d *DownloadModel, spinnerView string) string {
 	if d.pausing {
-		return lipgloss.NewStyle().Foreground(colors.StatePaused).Render(spinnerView + " Pausing...")
+		return lipgloss.NewStyle().Foreground(colors.StatePaused()).Render(spinnerView + " Pausing...")
 	}
 	if d.resuming {
-		return lipgloss.NewStyle().Foreground(colors.StateDownloading).Render(spinnerView + " Resuming...")
+		return lipgloss.NewStyle().Foreground(colors.StateDownloading()).Render(spinnerView + " Resuming...")
 	}
 	status := components.DetermineStatus(d.done, d.paused, d.err != nil, d.Speed, d.Downloaded)
 	return status.RenderWithSpinner(spinnerView)
@@ -1189,24 +1219,24 @@ func (m RootModel) viewQuitConfirm() string {
 	innerWidth := w - (components.BorderFrameWidth * 2)
 
 	messageStyle := lipgloss.NewStyle().
-		Foreground(colors.White).
+		Foreground(colors.White()).
 		Width(innerWidth).
 		Align(lipgloss.Center)
 
 	detailStyle := lipgloss.NewStyle().
-		Foreground(colors.Magenta).
+		Foreground(colors.Magenta()).
 		Bold(true).
 		Width(innerWidth).
 		Align(lipgloss.Center)
 
 	pad := "   "
 
-	activeFirst := lipgloss.NewStyle().Foreground(colors.White).Background(colors.Pink).Bold(true).Underline(true)
-	activeRest := lipgloss.NewStyle().Foreground(colors.White).Background(colors.Pink).Bold(true)
-	activePad := lipgloss.NewStyle().Background(colors.Pink)
+	activeFirst := lipgloss.NewStyle().Foreground(colors.White()).Background(colors.Pink()).Bold(true).Underline(true)
+	activeRest := lipgloss.NewStyle().Foreground(colors.White()).Background(colors.Pink()).Bold(true)
+	activePad := lipgloss.NewStyle().Background(colors.Pink())
 
-	inactiveFirst := lipgloss.NewStyle().Foreground(colors.LightGray).Background(lipgloss.Color("236")).Underline(true)
-	inactiveRest := lipgloss.NewStyle().Foreground(colors.LightGray).Background(lipgloss.Color("236"))
+	inactiveFirst := lipgloss.NewStyle().Foreground(colors.LightGray()).Background(lipgloss.Color("236")).Underline(true)
+	inactiveRest := lipgloss.NewStyle().Foreground(colors.LightGray()).Background(lipgloss.Color("236"))
 	inactivePad := lipgloss.NewStyle().Background(lipgloss.Color("236"))
 
 	renderBtn := func(padStyle, firstStyle, restStyle lipgloss.Style, first, rest string) string {
@@ -1232,7 +1262,7 @@ func (m RootModel) viewQuitConfirm() string {
 		detail = fmt.Sprintf("%d active download(s) will be paused", stats.ActiveCount)
 	}
 
-	helpStyle := lipgloss.NewStyle().Foreground(colors.Gray).Width(innerWidth).Align(lipgloss.Center)
+	helpStyle := lipgloss.NewStyle().Foreground(colors.Gray()).Width(innerWidth).Align(lipgloss.Center)
 	helpText := helpStyle.Render(m.help.View(m.keys.QuitConfirm))
 
 	var lines []string
@@ -1263,10 +1293,14 @@ func (m RootModel) viewQuitConfirm() string {
 
 	content := lipgloss.JoinVertical(lipgloss.Left, lines...)
 <<<<<<< HEAD
+<<<<<<< HEAD
 	return renderBtopBox(PaneTitleStyle.Render(" Quit Surge "), "", content, w, h, colors.NeonPink)
 =======
 	return renderBtopBox(PaneTitleStyle.Render(" Quit Surge "), "", content, width, height, colors.Pink)
 >>>>>>> 29b8130 (feat: Removed Neon prefix for colours)
+=======
+	return renderBtopBox(PaneTitleStyle.Render(" Quit Surge "), "", content, width, height, colors.Pink())
+>>>>>>> e1c23ed (feat: Decoupled colour scheme from theme)
 }
 
 // renderBtopBox creates a btop-style box with title embedded in the top border
