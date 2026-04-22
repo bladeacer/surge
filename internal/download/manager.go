@@ -137,14 +137,24 @@ func TUIDownload(ctx context.Context, cfg *types.DownloadConfig) error {
 		})
 	}
 
-	// Update shared state
-	if cfg.State != nil {
+	// Update shared state if we have a valid size
+	if cfg.State != nil && cfg.TotalSize > 0 {
 		cfg.State.SetTotalSize(cfg.TotalSize)
+	}
+
+	effectiveTotalSize := cfg.TotalSize
+	if cfg.State != nil && effectiveTotalSize <= 0 {
+		_, stateTotal, _, _, _, _ := cfg.State.GetProgress()
+		if stateTotal > 0 {
+			effectiveTotalSize = stateTotal
+		}
 	}
 
 	// Choose downloader based on probe results
 	var downloadErr error
-	if cfg.SupportsRange && cfg.TotalSize > 0 {
+	useConcurrent := cfg.SupportsRange
+
+	if useConcurrent {
 		utils.Debug("Using concurrent downloader")
 
 		// We probe all candidate mirrors (mirrors) to filter out invalid ones
@@ -177,12 +187,44 @@ func TUIDownload(ctx context.Context, cfg *types.DownloadConfig) error {
 		d.Headers = cfg.Headers // Forward custom headers from browser extension
 		utils.Debug("Calling Download with mirrors: %v", mirrors)
 		downloadErr = d.Download(ctx, cfg.URL, mirrors, activeMirrors, finalDestPath, cfg.TotalSize)
-	} else {
+		if d.TotalSize > 0 {
+			cfg.TotalSize = d.TotalSize
+			effectiveTotalSize = d.TotalSize
+			if cfg.State != nil {
+				cfg.State.SetTotalSize(d.TotalSize)
+			}
+		}
+
+		// Determine if we should attempt a fallback to single-threaded mode.
+		// We fallback if concurrent failed, but it wasn't a clean pause or external cancellation.
+		if downloadErr != nil && !errors.Is(downloadErr, types.ErrPaused) && !errors.Is(downloadErr, context.Canceled) && !errors.Is(downloadErr, context.DeadlineExceeded) {
+			utils.Debug("Concurrent download failed: %v — falling back to single-threaded", downloadErr)
+			useConcurrent = false // Trigger sequential block below
+
+			// Reset progress state for single-stream restart from byte 0
+			if cfg.State != nil {
+				cfg.State.Downloaded.Store(0)
+				cfg.State.VerifiedProgress.Store(0)
+				cfg.State.SyncSessionStart()
+			}
+
+			// Truncate the working file to zero to prevent stale tail bytes
+			// from the failed concurrent session.
+			surgePath := finalDestPath + types.IncompleteSuffix
+			_ = os.Truncate(surgePath, 0)
+		}
+	}
+
+	if !useConcurrent {
 		// Fallback to single-threaded downloader
 		utils.Debug("Using single-threaded downloader")
 		d := single.NewSingleDownloader(cfg.ID, cfg.ProgressCh, cfg.State, cfg.Runtime)
 		d.Headers = cfg.Headers // Forward custom headers from browser extension
 		downloadErr = d.Download(ctx, cfg.URL, finalDestPath, cfg.TotalSize, finalFilename)
+		if d.TotalSize > 0 {
+			cfg.TotalSize = d.TotalSize
+			effectiveTotalSize = d.TotalSize
+		}
 	}
 
 	// Only send completion if NO error AND not paused
@@ -196,7 +238,7 @@ func TUIDownload(ctx context.Context, cfg *types.DownloadConfig) error {
 	if downloadErr == nil && !isPaused {
 		var elapsed time.Duration
 		if cfg.State != nil {
-			_, elapsed = cfg.State.FinalizeSession(cfg.TotalSize)
+			_, elapsed = cfg.State.FinalizeSession(effectiveTotalSize)
 		} else {
 			elapsed = time.Since(start)
 		}
@@ -205,7 +247,7 @@ func TUIDownload(ctx context.Context, cfg *types.DownloadConfig) error {
 		// Compute average download speed in bytes/sec
 		var avgSpeed float64
 		if elapsed.Seconds() > 0 {
-			avgSpeed = float64(cfg.TotalSize) / elapsed.Seconds()
+			avgSpeed = float64(effectiveTotalSize) / elapsed.Seconds()
 		}
 
 		if cfg.ProgressCh != nil {
@@ -213,13 +255,13 @@ func TUIDownload(ctx context.Context, cfg *types.DownloadConfig) error {
 				DownloadID: cfg.ID,
 				Filename:   finalFilename,
 				Elapsed:    elapsed,
-				Total:      cfg.TotalSize,
+				Total:      effectiveTotalSize,
 				AvgSpeed:   avgSpeed,
 			})
 		}
 	} else if downloadErr != nil && !isPaused {
 		// Verify it's not a cancellation error
-		if errors.Is(downloadErr, context.Canceled) {
+		if errors.Is(downloadErr, context.Canceled) || errors.Is(downloadErr, context.DeadlineExceeded) {
 			utils.Debug("Download canceled cleanly")
 			return nil
 		}

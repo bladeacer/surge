@@ -4,10 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
+
+	"net/url"
 
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/engine/events"
@@ -254,10 +258,36 @@ func (mgr *LifecycleManager) enqueueResolved(ctx context.Context, req *DownloadR
 		defer func() { mgr.probeSem <- struct{}{} }()
 	}
 
-	probe, err := ProbeServerWithProxy(ctx, req.URL, req.Filename, req.Headers, settings.ToRuntimeConfig())
-	if err != nil {
-		utils.Debug("Lifecycle: Probe failed: %v\n", err)
-		return "", "", fmt.Errorf("probe failed: %w", err)
+	probe, probeErr := ProbeServerWithProxy(ctx, req.URL, req.Filename, req.Headers, settings.ToRuntimeConfig())
+	if probeErr != nil {
+		// Distinguish between terminal client errors (invalid scheme, etc) and
+		// server-side rejections or timeouts that we can optimistically ignore.
+		var urlErr *url.Error
+		var isTerminal bool
+		if errors.As(probeErr, &urlErr) {
+			var opErr *net.OpError
+			isTerminal = !errors.As(probeErr, &opErr) && // not a network-layer error
+				strings.Contains(urlErr.Error(), "unsupported protocol scheme")
+		}
+		isTerminal = isTerminal || errors.Is(probeErr, ErrProbeRequestCreation)
+
+		if isTerminal {
+			return "", "", probeErr
+		}
+
+		utils.Debug("Lifecycle: Probe failed: %v — enqueueing with optimistic fallback metadata\n", probeErr)
+		// Probe failures are non-fatal for known server-side issues (403/405/500) or
+		// network timeouts: some servers reject or intermittently fail
+		// lightweight probe requests but still accept the actual download flow.
+		// Mark range support as "unknown, try it" by keeping size at zero and
+		// setting SupportsRange so the download path can attempt a concurrent
+		// bootstrap before falling back to single-stream mode.
+		probe = &ProbeResult{}
+		probe.SupportsRange = true
+		if req.Filename != "" {
+			probe.Filename = req.Filename
+			probe.DetectedFilename = req.Filename
+		}
 	}
 
 	isNameActive := mgr.buildIsNameActive()
