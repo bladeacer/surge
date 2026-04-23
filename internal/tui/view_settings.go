@@ -10,6 +10,7 @@ import (
 	"github.com/SurgeDM/Surge/internal/config"
 	"github.com/SurgeDM/Surge/internal/tui/colors"
 	"github.com/SurgeDM/Surge/internal/tui/components"
+	"github.com/SurgeDM/Surge/internal/utils"
 
 	"charm.land/lipgloss/v2"
 )
@@ -267,13 +268,7 @@ func renderSettingsListViewport(settingsMeta []config.SettingMeta, selectedRow, 
 		}
 
 		// Truncate to avoid line wrapping which breaks parent height constraints
-		if len(label) > maxLabelLen {
-			if maxLabelLen > 3 {
-				label = label[:maxLabelLen-3] + "..."
-			} else {
-				label = label[:maxLabelLen]
-			}
-		}
+		label = utils.Truncate(label, maxLabelLen)
 
 		lines = append(lines, style.Width(innerWidth).MaxWidth(innerWidth).Render(prefix+label))
 	}
@@ -342,11 +337,12 @@ func (m RootModel) renderSettingsDetailBlock(settingsMeta []config.SettingMeta, 
 
 	divider := lipgloss.NewStyle().Foreground(colors.Gray()).Render(strings.Repeat("\u2500", innerWidth))
 
+	wrappedDesc := utils.WrapText(meta.Description, innerWidth)
 	descDisplay := lipgloss.NewStyle().
 		Foreground(colors.LightGray()).
 		Width(innerWidth).
 		MaxWidth(innerWidth).
-		Render(meta.Description)
+		Render(wrappedDesc)
 
 	detail := lipgloss.JoinVertical(lipgloss.Left,
 		valueDisplay,
@@ -825,8 +821,8 @@ func formatSettingValue(value interface{}, typ string, truncate bool) string {
 			if s == "" {
 				return "(default)"
 			}
-			if truncate && len(s) > 30 {
-				return s[:27] + "..."
+			if truncate {
+				return utils.Truncate(s, 30)
 			}
 			return s
 		}

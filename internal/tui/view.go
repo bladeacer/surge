@@ -144,7 +144,7 @@ func (m RootModel) View() tea.View {
 		modal := components.ConfirmationModal{
 			Title:       "\u26a0 Duplicate Detected",
 			Message:     "A download with this URL already exists",
-			Detail:      truncateString(m.duplicateInfo, 50),
+			Detail:      m.duplicateInfo,
 			Keys:        m.keys.Duplicate,
 			Help:        m.help,
 			BorderColor: colors.Pink(),
@@ -178,7 +178,7 @@ func (m RootModel) View() tea.View {
 			Labels:          []string{"Path:", "Filename:"},
 			FocusedInput:    focused,
 			ShowURL:         true,
-			URL:             truncateString(m.pendingURL, 68),
+			URL:             m.pendingURL,
 			BrowseHintIndex: 0,
 			Help:            m.help,
 			HelpKeys:        m.keys.Extension,
@@ -217,7 +217,7 @@ func (m RootModel) View() tea.View {
 		modal := components.ConfirmationModal{
 			Title:       "Batch Import",
 			Message:     fmt.Sprintf("Add %d downloads?", urlCount),
-			Detail:      truncateString(m.batchFilePath, 50),
+			Detail:      m.batchFilePath,
 			Keys:        m.keys.BatchConfirm,
 			Help:        m.help,
 			BorderColor: colors.Cyan(),
@@ -458,10 +458,10 @@ func renderFocusedDetails(d *DownloadModel, w int, spinnerView string) string {
 	}
 
 	fileInfoContent := lipgloss.JoinVertical(lipgloss.Left,
-		lipgloss.JoinHorizontal(lipgloss.Left, StatsLabelStyle.Render("URL: "), StatsValueStyle.Render(truncateMiddle(d.URL, valueWidth))),
-		lipgloss.JoinHorizontal(lipgloss.Left, StatsLabelStyle.Render("File: "), StatsValueStyle.Render(truncateString(displayFilename, valueWidth))),
-		lipgloss.JoinHorizontal(lipgloss.Left, StatsLabelStyle.Render("Path: "), StatsValueStyle.Render(truncateMiddle(displayPath, valueWidth))),
-		lipgloss.JoinHorizontal(lipgloss.Left, StatsLabelStyle.Render("ID:   "), lipgloss.NewStyle().Foreground(colors.LightGray()).Render(truncateString(d.ID, valueWidth))),
+		lipgloss.JoinHorizontal(lipgloss.Top, StatsLabelStyle.Render("URL: "), StatsValueStyle.Width(valueWidth).MaxWidth(valueWidth).Render(utils.WrapText(d.URL, valueWidth))),
+		lipgloss.JoinHorizontal(lipgloss.Top, StatsLabelStyle.Render("File: "), StatsValueStyle.Width(valueWidth).MaxWidth(valueWidth).Render(utils.WrapText(displayFilename, valueWidth))),
+		lipgloss.JoinHorizontal(lipgloss.Top, StatsLabelStyle.Render("Path: "), StatsValueStyle.Width(valueWidth).MaxWidth(valueWidth).Render(utils.WrapText(displayPath, valueWidth))),
+		lipgloss.JoinHorizontal(lipgloss.Top, StatsLabelStyle.Render("ID:   "), lipgloss.NewStyle().Foreground(colors.LightGray()).Width(valueWidth).MaxWidth(valueWidth).Render(utils.WrapText(d.ID, valueWidth))),
 	)
 	fileSection := sectionStyle.Render(fileInfoContent)
 
@@ -687,42 +687,6 @@ func (m RootModel) ComputeViewStats() ViewStats {
 		stats.TotalDownloaded += d.Downloaded
 	}
 	return stats
-}
-
-func truncateString(s string, i int) string {
-	if i <= 0 {
-		return ""
-	}
-	if lipgloss.Width(s) <= i {
-		return s
-	}
-	if i <= 1 {
-		return "\u2026"
-	}
-	return lipgloss.NewStyle().MaxWidth(i-1).Render(s) + "\u2026"
-}
-
-func truncateMiddle(s string, i int) string {
-	if i <= 0 {
-		return ""
-	}
-	if lipgloss.Width(s) <= i {
-		return s
-	}
-	if i <= 5 {
-		return truncateString(s, i)
-	}
-
-	runes := []rune(s)
-	// We use i-1 because \u2026 is one character
-	start := (i - 1) / 2
-	end := i - 1 - start
-
-	if start+end+1 > len(runes) {
-		return s
-	}
-
-	return string(runes[:start]) + "\u2026" + string(runes[len(runes)-end:])
 }
 
 func renderTabs(activeTab, activeCount, queuedCount, doneCount int) string {
