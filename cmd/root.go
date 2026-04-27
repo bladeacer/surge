@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"runtime/debug"
 	"strings"
 	"sync"
@@ -543,12 +544,32 @@ func startTUI(port int, exitWhenDone bool, noResume bool) error {
 	}()
 
 	// Run TUI
-	if _, err := p.Run(); err != nil {
+	finalModel, err := p.Run()
+	if err != nil {
 		_ = executeGlobalShutdown("tui: p.Run failed")
 		return fmt.Errorf("error running program: %w", err)
 	}
 	_ = executeGlobalShutdown("tui: program exited")
+
+	// Check if restart was requested (e.g. from settings changed)
+	if m, ok := finalModel.(tui.RootModel); ok && m.RestartRequested {
+		return performRestart()
+	}
+
 	return nil
+}
+
+func performRestart() error {
+	executable, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("could not get executable path: %w", err)
+	}
+
+	if runtime.GOOS == "windows" {
+		_ = ReleaseLock()
+	}
+
+	return utils.Run(executable, os.Args, os.Environ())
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
