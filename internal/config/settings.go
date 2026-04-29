@@ -2,9 +2,13 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
+	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/SurgeDM/Surge/internal/utils"
@@ -17,6 +21,10 @@ type Settings struct {
 	Performance PerformanceSettings `json:"performance" ui_label:"Performance"`
 	Categories  CategorySettings    `json:"categories" ui_label:"Categories"`
 	Extension   ExtensionSettings   `json:"extension" ui_label:"Extension"`
+
+	// StartupWarnings holds validation messages from the most recent LoadSettings call.
+	// It is ignored during JSON serialization.
+	StartupWarnings []string `json:"-"`
 }
 
 // GeneralSettings contains application behavior settings.
@@ -270,7 +278,186 @@ func LoadSettings() (*Settings, error) {
 		return DefaultSettings(), nil
 	}
 
+	// Validate settings and roll back individual invalid fields to defaults
+	settings.Validate()
+
 	return settings, nil
+}
+
+func (s *Settings) Validate() {
+	s.StartupWarnings = nil
+	s.StartupWarnings = append(s.StartupWarnings, s.General.Validate()...)
+	s.StartupWarnings = append(s.StartupWarnings, s.Network.Validate()...)
+	s.StartupWarnings = append(s.StartupWarnings, s.Performance.Validate()...)
+	s.StartupWarnings = append(s.StartupWarnings, s.Categories.Validate(s.General.DefaultDownloadDir)...)
+	s.StartupWarnings = append(s.StartupWarnings, s.Extension.Validate()...)
+}
+
+// Validate checks GeneralSettings for invalid paths or out-of-bounds values.
+func (gs *GeneralSettings) Validate() []string {
+	var warnings []string
+	defaults := DefaultSettings().General
+
+	if gs.Theme < 0 || gs.Theme > 2 {
+		gs.Theme = defaults.Theme
+		warnings = append(warnings, "Invalid theme reset to default")
+	}
+	if gs.LogRetentionCount < 1 || gs.LogRetentionCount > 100 {
+		gs.LogRetentionCount = defaults.LogRetentionCount
+		warnings = append(warnings, fmt.Sprintf("Log retention count reset to default (%d)", defaults.LogRetentionCount))
+	}
+
+	// Validate DefaultDownloadDir
+	trimmed := strings.TrimSpace(gs.DefaultDownloadDir)
+	if trimmed != "" {
+		if info, err := os.Stat(trimmed); err != nil {
+			// If path is invalid or inaccessible, fallback to default system downloads dir
+			gs.DefaultDownloadDir = defaults.DefaultDownloadDir
+			warnings = append(warnings, fmt.Sprintf("Download directory %q is inaccessible; reset to default", trimmed))
+		} else if !info.IsDir() {
+			gs.DefaultDownloadDir = defaults.DefaultDownloadDir
+			warnings = append(warnings, fmt.Sprintf("Download directory %q is not a folder; reset to default", trimmed))
+		}
+	}
+	return warnings
+}
+
+// Validate checks NetworkSettings for valid IPs, URLs, and numeric bounds.
+func (ns *NetworkSettings) Validate() []string {
+	var warnings []string
+	defaults := DefaultSettings().Network
+
+	if ns.MaxConnectionsPerHost < 1 || ns.MaxConnectionsPerHost > 64 {
+		ns.MaxConnectionsPerHost = defaults.MaxConnectionsPerHost
+		warnings = append(warnings, fmt.Sprintf("Max connections/host reset to default (%d)", defaults.MaxConnectionsPerHost))
+	}
+	if ns.MaxConcurrentDownloads < 1 || ns.MaxConcurrentDownloads > 10 {
+		ns.MaxConcurrentDownloads = defaults.MaxConcurrentDownloads
+		warnings = append(warnings, fmt.Sprintf("Max concurrent downloads reset to default (%d)", defaults.MaxConcurrentDownloads))
+	}
+	if ns.MaxConcurrentProbes < 1 || ns.MaxConcurrentProbes > 10 {
+		ns.MaxConcurrentProbes = defaults.MaxConcurrentProbes
+		warnings = append(warnings, fmt.Sprintf("Max concurrent probes reset to default (%d)", defaults.MaxConcurrentProbes))
+	}
+	if ns.MinChunkSize < 100*KB {
+		ns.MinChunkSize = defaults.MinChunkSize
+		warnings = append(warnings, "Min chunk size reset to default")
+	}
+	if ns.WorkerBufferSize < 1*KB {
+		ns.WorkerBufferSize = defaults.WorkerBufferSize
+		warnings = append(warnings, "Worker buffer size reset to default")
+	}
+	if ns.DialHedgeCount < 0 || ns.DialHedgeCount > 16 {
+		ns.DialHedgeCount = defaults.DialHedgeCount
+		warnings = append(warnings, "Dial hedge count reset to default")
+	}
+
+	// Validate ProxyURL if set
+	if ns.ProxyURL != "" {
+		u, err := url.Parse(ns.ProxyURL)
+		if err != nil || u.Scheme == "" || u.Host == "" {
+			ns.ProxyURL = defaults.ProxyURL
+			warnings = append(warnings, "Invalid proxy URL reset to default")
+		}
+	}
+
+	// Validate CustomDNS if set
+	if ns.CustomDNS != "" {
+		if err := ValidateDNSList(ns.CustomDNS); err != nil {
+			ns.CustomDNS = defaults.CustomDNS
+			warnings = append(warnings, "Invalid DNS configuration reset to default")
+		}
+	}
+	return warnings
+}
+
+// ValidateDNSList checks if a comma-separated list of DNS servers (IP or IP:port) is valid.
+func ValidateDNSList(s string) error {
+	trimmed := strings.TrimSpace(s)
+	if trimmed == "" {
+		return nil
+	}
+	parts := strings.Split(trimmed, ",")
+	for _, part := range parts {
+		p := strings.TrimSpace(part)
+		if p == "" {
+			continue
+		}
+		host, _, err := net.SplitHostPort(p)
+		if err != nil {
+			if net.ParseIP(p) == nil {
+				return fmt.Errorf("invalid DNS: %s", p)
+			}
+		} else {
+			if net.ParseIP(host) == nil {
+				return fmt.Errorf("invalid DNS IP: %s", host)
+			}
+		}
+	}
+	return nil
+}
+
+// Validate checks PerformanceSettings for valid floating point ranges and durations.
+func (ps *PerformanceSettings) Validate() []string {
+	var warnings []string
+	defaults := DefaultSettings().Performance
+
+	if ps.MaxTaskRetries < 0 || ps.MaxTaskRetries > 10 {
+		ps.MaxTaskRetries = defaults.MaxTaskRetries
+		warnings = append(warnings, fmt.Sprintf("Max task retries reset to default (%d)", defaults.MaxTaskRetries))
+	}
+	if ps.SlowWorkerThreshold < 0.0 || ps.SlowWorkerThreshold > 1.0 {
+		ps.SlowWorkerThreshold = defaults.SlowWorkerThreshold
+		warnings = append(warnings, "Slow worker threshold reset to default")
+	}
+	if ps.SpeedEmaAlpha < 0.0 || ps.SpeedEmaAlpha > 1.0 {
+		ps.SpeedEmaAlpha = defaults.SpeedEmaAlpha
+		warnings = append(warnings, "Speed smoothing factor reset to default")
+	}
+	if ps.SlowWorkerGracePeriod < 0 {
+		ps.SlowWorkerGracePeriod = defaults.SlowWorkerGracePeriod
+		warnings = append(warnings, "Slow worker grace period reset to default")
+	}
+	if ps.StallTimeout < 0 {
+		ps.StallTimeout = defaults.StallTimeout
+		warnings = append(warnings, "Stall timeout reset to default")
+	}
+	return warnings
+}
+
+// Validate checks CategorySettings and ensures all defined categories are valid.
+func (cs *CategorySettings) Validate(fallbackDir string) []string {
+	var warnings []string
+	validCats := make([]Category, 0, len(cs.Categories))
+	for _, cat := range cs.Categories {
+		if err := cat.Validate(); err == nil {
+			// Extra path check for each category
+			catPath := strings.TrimSpace(cat.Path)
+			if catPath != "" {
+				if info, err := os.Stat(catPath); err != nil || !info.IsDir() {
+					// Fallback to validated default download dir for this category if path is broken
+					cat.Path = fallbackDir
+					warnings = append(warnings, fmt.Sprintf("Category %q path is broken; reset to default", cat.Name))
+				}
+			}
+			validCats = append(validCats, cat)
+		} else {
+			warnings = append(warnings, fmt.Sprintf("Removed invalid category %q: %v", cat.Name, err))
+			utils.Debug("Config: Removing invalid category %q: %v", cat.Name, err)
+		}
+	}
+
+	cs.Categories = validCats
+	return warnings
+}
+
+// Validate checks ExtensionSettings for any necessary field sanitization.
+func (es *ExtensionSettings) Validate() []string {
+	var warnings []string
+	// Extension settings are currently mostly URLs or booleans that don't
+	// require strict range enforcement, but we maintain the Validate method
+	// for future consistency and testing.
+	return warnings
 }
 
 // SaveSettings saves settings to disk atomically.
